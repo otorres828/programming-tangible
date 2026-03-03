@@ -1,0 +1,771 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ShopVibe - Catálogo de Productos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .gradient-text {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        .filter-checkbox:checked + div {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: transparent;
+        }
+        
+        .search-focus:focus {
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.1);
+        }
+        
+        .category-active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .price-range::-webkit-slider-thumb {
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            cursor: pointer;
+        }
+        
+        .badge-new {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .badge-sale {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        
+        .badge-hot {
+            background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease forwards;
+        }
+        
+        .star-rating {
+            color: #fbbf24;
+        }
+        
+        .cart-badge {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        
+        .sidebar-scroll {
+            scrollbar-width: thin;
+            scrollbar-color: #cbd5e1 transparent;
+        }
+        
+        .sidebar-scroll::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .sidebar-scroll::-webkit-scrollbar-thumb {
+            background-color: #cbd5e1;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- Header -->
+    <header class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo -->
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
+                        <i class="fas fa-shopping-bag text-white text-lg"></i>
+                    </div>
+                    <span class="text-2xl font-bold gradient-text">ShopVibe</span>
+                </div>
+                
+                <!-- Navigation -->
+                <nav class="hidden md:flex items-center gap-8">
+                    <a href="#" class="text-gray-600 hover:text-purple-600 font-medium transition">Inicio</a>
+                    <a href="#" class="text-purple-600 font-medium">Catálogo</a>
+                    <a href="#" class="text-gray-600 hover:text-purple-600 font-medium transition">Ofertas</a>
+                    <a href="#" class="text-gray-600 hover:text-purple-600 font-medium transition">Nosotros</a>
+                </nav>
+                
+                <!-- Actions -->
+                <div class="flex items-center gap-4">
+                    <button class="relative p-2 text-gray-600 hover:text-purple-600 transition">
+                        <i class="fas fa-heart text-xl"></i>
+                        <span class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">3</span>
+                    </button>
+                    <button class="relative p-2 text-gray-600 hover:text-purple-600 transition">
+                        <i class="fas fa-shopping-cart text-xl"></i>
+                        <span class="absolute -top-1 -right-1 w-5 h-5 bg-purple-600 text-white text-xs rounded-full flex items-center justify-center cart-badge">2</span>
+                    </button>
+                    <button class="hidden md:flex items-center gap-2 px-4 py-2 bg-gray-100 rounded-lg hover:bg-gray-200 transition">
+                        <img src="https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=100&h=100&fit=crop&crop=face" alt="User" class="w-8 h-8 rounded-full">
+                        <span class="text-sm font-medium text-gray-700">Mi Cuenta</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="flex flex-col lg:flex-row gap-8">
+            
+            <!-- Sidebar Filters -->
+            <aside class="lg:w-64 flex-shrink-0">
+                <div class="bg-white rounded-2xl shadow-sm p-6 sticky top-24 sidebar-scroll max-h-[calc(100vh-6rem)] overflow-y-auto">
+                    <!-- Categories -->
+                    <div class="mb-8">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                            <i class="fas fa-th-large text-purple-600"></i>
+                            Categorías
+                        </h3>
+                        <div class="space-y-2">
+                            <button class="category-active w-full text-left px-4 py-3 rounded-xl text-sm font-medium transition flex items-center justify-between">
+                                <span>Todas las categorías</span>
+                                <span class="bg-white/20 px-2 py-1 rounded text-xs">248</span>
+                            </button>
+                            <button class="w-full text-left px-4 py-3 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition flex items-center justify-between">
+                                <span><i class="fas fa-mobile-alt mr-2"></i>Tecnología</span>
+                                <span class="bg-gray-100 px-2 py-1 rounded text-xs">86</span>
+                            </button>
+                            <button class="w-full text-left px-4 py-3 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition flex items-center justify-between">
+                                <span><i class="fas fa-tshirt mr-2"></i>Moda</span>
+                                <span class="bg-gray-100 px-2 py-1 rounded text-xs">64</span>
+                            </button>
+                            <button class="w-full text-left px-4 py-3 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition flex items-center justify-between">
+                                <span><i class="fas fa-couch mr-2"></i>Hogar</span>
+                                <span class="bg-gray-100 px-2 py-1 rounded text-xs">52</span>
+                            </button>
+                            <button class="w-full text-left px-4 py-3 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition flex items-center justify-between">
+                                <span><i class="fas fa-running mr-2"></i>Deportes</span>
+                                <span class="bg-gray-100 px-2 py-1 rounded text-xs">31</span>
+                            </button>
+                            <button class="w-full text-left px-4 py-3 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition flex items-center justify-between">
+                                <span><i class="fas fa-spa mr-2"></i>Belleza</span>
+                                <span class="bg-gray-100 px-2 py-1 rounded text-xs">15</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Price Range -->
+                    <div class="mb-8">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                            <i class="fas fa-dollar-sign text-purple-600"></i>
+                            Precio
+                        </h3>
+                        <div class="px-2">
+                            <input type="range" min="0" max="2000" value="1500" class="price-range w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                            <div class="flex justify-between mt-3 text-sm text-gray-600">
+                                <span>$0</span>
+                                <span class="font-semibold text-purple-600">$1,500</span>
+                                <span>$2,000</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Filters -->
+                    <div class="mb-8">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                            <i class="fas fa-filter text-purple-600"></i>
+                            Filtros
+                        </h3>
+                        
+                        <!-- Rating -->
+                        <div class="mb-6">
+                            <h4 class="text-sm font-medium text-gray-700 mb-3">Calificación</h4>
+                            <div class="space-y-2">
+                                <label class="flex items-center gap-3 cursor-pointer group">
+                                    <input type="checkbox" class="filter-checkbox hidden" checked>
+                                    <div class="w-5 h-5 border-2 border-gray-300 rounded flex items-center justify-center transition group-hover:border-purple-400">
+                                        <i class="fas fa-check text-xs"></i>
+                                    </div>
+                                    <div class="flex items-center gap-1">
+                                        <span class="star-rating text-sm">★★★★★</span>
+                                        <span class="text-xs text-gray-500 ml-1">(4.5+)</span>
+                                    </div>
+                                </label>
+                                <label class="flex items-center gap-3 cursor-pointer group">
+                                    <input type="checkbox" class="filter-checkbox hidden">
+                                    <div class="w-5 h-5 border-2 border-gray-300 rounded flex items-center justify-center transition group-hover:border-purple-400">
+                                        <i class="fas fa-check text-xs"></i>
+                                    </div>
+                                    <div class="flex items-center gap-1">
+                                        <span class="star-rating text-sm">★★★★☆</span>
+                                        <span class="text-xs text-gray-500 ml-1">(4.0+)</span>
+                                    </div>
+                                </label>
+                                <label class="flex items-center gap-3 cursor-pointer group">
+                                    <input type="checkbox" class="filter-checkbox hidden">
+                                    <div class="w-5 h-5 border-2 border-gray-300 rounded flex items-center justify-center transition group-hover:border-purple-400">
+                                        <i class="fas fa-check text-xs"></i>
+                                    </div>
+                                    <div class="flex items-center gap-1">
+                                        <span class="star-rating text-sm">★★★☆☆</span>
+                                        <span class="text-xs text-gray-500 ml-1">(3.0+)</span>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Brands -->
+                        <div class="mb-6">
+                            <h4 class="text-sm font-medium text-gray-700 mb-3">Marcas</h4>
+                            <div class="space-y-2">
+                                <label class="flex items-center gap-3 cursor-pointer group">
+                                    <input type="checkbox" class="filter-checkbox hidden" checked>
+                                    <div class="w-5 h-5 border-2 border-gray-300 rounded flex items-center justify-center transition group-hover:border-purple-400">
+                                        <i class="fas fa-check text-xs"></i>
+                                    </div>
+                                    <span class="text-sm text-gray-600">Apple</span>
+                                    <span class="text-xs text-gray-400 ml-auto">24</span>
+                                </label>
+                                <label class="flex items-center gap-3 cursor-pointer group">
+                                    <input type="checkbox" class="filter-checkbox hidden">
+                                    <div class="w-5 h-5 border-2 border-gray-300 rounded flex items-center justify-center transition group-hover:border-purple-400">
+                                        <i class="fas fa-check text-xs"></i>
+                                    </div>
+                                    <span class="text-sm text-gray-600">Samsung</span>
+                                    <span class="text-xs text-gray-400 ml-auto">18</span>
+                                </label>
+                                <label class="flex items-center gap-3 cursor-pointer group">
+                                    <input type="checkbox" class="filter-checkbox hidden">
+                                    <div class="w-5 h-5 border-2 border-gray-300 rounded flex items-center justify-center transition group-hover:border-purple-400">
+                                        <i class="fas fa-check text-xs"></i>
+                                    </div>
+                                    <span class="text-sm text-gray-600">Sony</span>
+                                    <span class="text-xs text-gray-400 ml-auto">12</span>
+                                </label>
+                                <label class="flex items-center gap-3 cursor-pointer group">
+                                    <input type="checkbox" class="filter-checkbox hidden">
+                                    <div class="w-5 h-5 border-2 border-gray-300 rounded flex items-center justify-center transition group-hover:border-purple-400">
+                                        <i class="fas fa-check text-xs"></i>
+                                    </div>
+                                    <span class="text-sm text-gray-600">Nike</span>
+                                    <span class="text-xs text-gray-400 ml-auto">9</span>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Availability -->
+                        <div>
+                            <h4 class="text-sm font-medium text-gray-700 mb-3">Disponibilidad</h4>
+                            <div class="space-y-2">
+                                <label class="flex items-center gap-3 cursor-pointer group">
+                                    <input type="checkbox" class="filter-checkbox hidden" checked>
+                                    <div class="w-5 h-5 border-2 border-gray-300 rounded flex items-center justify-center transition group-hover:border-purple-400">
+                                        <i class="fas fa-check text-xs"></i>
+                                    </div>
+                                    <span class="text-sm text-gray-600">En stock</span>
+                                </label>
+                                <label class="flex items-center gap-3 cursor-pointer group">
+                                    <input type="checkbox" class="filter-checkbox hidden">
+                                    <div class="w-5 h-5 border-2 border-gray-300 rounded flex items-center justify-center transition group-hover:border-purple-400">
+                                        <i class="fas fa-check text-xs"></i>
+                                    </div>
+                                    <span class="text-sm text-gray-600">En oferta</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Clear Filters -->
+                    <button class="w-full py-3 border-2 border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:border-purple-600 hover:text-purple-600 transition flex items-center justify-center gap-2">
+                        <i class="fas fa-undo"></i>
+                        Limpiar filtros
+                    </button>
+                </div>
+            </aside>
+
+            <!-- Main Content Area -->
+            <div class="flex-1">
+                <!-- Search and Sort Bar -->
+                <div class="bg-white rounded-2xl shadow-sm p-4 mb-6">
+                    <div class="flex flex-col md:flex-row gap-4 items-center justify-between">
+                        <!-- Search -->
+                        <div class="relative w-full md:w-96">
+                            <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                            <input type="text" placeholder="Buscar productos..." 
+                                   class="search-focus w-full pl-12 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-purple-500 transition">
+                            <button class="absolute right-3 top-1/2 -translate-y-1/2 px-4 py-1.5 bg-purple-600 text-white text-xs font-medium rounded-lg hover:bg-purple-700 transition">
+                                Buscar
+                            </button>
+                        </div>
+                        
+                        <!-- Sort and View -->
+                        <div class="flex items-center gap-4">
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm text-gray-500">Ordenar por:</span>
+                                <select class="px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-purple-500 cursor-pointer">
+                                    <option>Relevancia</option>
+                                    <option>Precio: Menor a mayor</option>
+                                    <option>Precio: Mayor a menor</option>
+                                    <option>Más vendidos</option>
+                                    <option>Mejor calificados</option>
+                                </select>
+                            </div>
+                            <div class="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+                                <button class="p-2 rounded bg-white shadow-sm text-purple-600">
+                                    <i class="fas fa-th-large"></i>
+                                </button>
+                                <button class="p-2 rounded text-gray-400 hover:text-gray-600">
+                                    <i class="fas fa-list"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Results Info -->
+                    <div class="flex items-center justify-between mt-4 pt-4 border-t border-gray-100">
+                        <p class="text-sm text-gray-600">
+                            Mostrando <span class="font-semibold text-gray-900">1-12</span> de <span class="font-semibold text-gray-900">248</span> productos
+                        </p>
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm text-gray-500">Vista rápida:</span>
+                            <div class="flex gap-1">
+                                <span class="w-2 h-2 rounded-full bg-purple-600"></span>
+                                <span class="w-2 h-2 rounded-full bg-gray-300"></span>
+                                <span class="w-2 h-2 rounded-full bg-gray-300"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Products Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    
+                    <!-- Product Card 1 -->
+                    <div class="card-hover bg-white rounded-2xl shadow-sm overflow-hidden animate-fade-in" style="animation-delay: 0.1s">
+                        <div class="relative">
+                            <img src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=400&fit=crop" alt="Headphones" class="w-full h-48 object-cover">
+                            <span class="badge-new absolute top-3 left-3 text-white text-xs font-bold px-3 py-1 rounded-full">NUEVO</span>
+                            <button class="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur rounded-full flex items-center justify-center text-gray-400 hover:text-red-500 transition">
+                                <i class="far fa-heart"></i>
+                            </button>
+                            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
+                                <p class="text-white text-xs font-medium">Tecnología • Audio</p>
+                            </div>
+                        </div>
+                        <div class="p-5">
+                            <div class="flex items-center gap-1 mb-2">
+                                <span class="star-rating text-xs">★★★★★</span>
+                                <span class="text-xs text-gray-400">(4.9)</span>
+                            </div>
+                            <h3 class="font-semibold text-gray-900 mb-1 line-clamp-2">Auriculares Premium Wireless ANC</h3>
+                            <p class="text-sm text-gray-500 mb-3">Cancelación de ruido activa, 30h batería</p>
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <span class="text-2xl font-bold text-gray-900">$299</span>
+                                    <span class="text-sm text-gray-400 line-through ml-2">$399</span>
+                                </div>
+                                <button class="w-10 h-10 bg-purple-600 text-white rounded-xl flex items-center justify-center hover:bg-purple-700 transition shadow-lg shadow-purple-200">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Product Card 2 -->
+                    <div class="card-hover bg-white rounded-2xl shadow-sm overflow-hidden animate-fade-in" style="animation-delay: 0.2s">
+                        <div class="relative">
+                            <img src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400&h=400&fit=crop" alt="Watch" class="w-full h-48 object-cover">
+                            <span class="badge-sale absolute top-3 left-3 text-white text-xs font-bold px-3 py-1 rounded-full">-30%</span>
+                            <button class="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur rounded-full flex items-center justify-center text-gray-400 hover:text-red-500 transition">
+                                <i class="far fa-heart"></i>
+                            </button>
+                            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
+                                <p class="text-white text-xs font-medium">Tecnología • Wearables</p>
+                            </div>
+                        </div>
+                        <div class="p-5">
+                            <div class="flex items-center gap-1 mb-2">
+                                <span class="star-rating text-xs">★★★★★</span>
+                                <span class="text-xs text-gray-400">(4.8)</span>
+                            </div>
+                            <h3 class="font-semibold text-gray-900 mb-1 line-clamp-2">SmartWatch Pro Series 7</h3>
+                            <p class="text-sm text-gray-500 mb-3">GPS, monitor cardíaco, resistente al agua</p>
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <span class="text-2xl font-bold text-gray-900">$349</span>
+                                    <span class="text-sm text-gray-400 line-through ml-2">$499</span>
+                                </div>
+                                <button class="w-10 h-10 bg-purple-600 text-white rounded-xl flex items-center justify-center hover:bg-purple-700 transition shadow-lg shadow-purple-200">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Product Card 3 -->
+                    <div class="card-hover bg-white rounded-2xl shadow-sm overflow-hidden animate-fade-in" style="animation-delay: 0.3s">
+                        <div class="relative">
+                            <img src="https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&h=400&fit=crop" alt="Sneakers" class="w-full h-48 object-cover">
+                            <span class="badge-hot absolute top-3 left-3 text-white text-xs font-bold px-3 py-1 rounded-full">HOT</span>
+                            <button class="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur rounded-full flex items-center justify-center text-red-500">
+                                <i class="fas fa-heart"></i>
+                            </button>
+                            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
+                                <p class="text-white text-xs font-medium">Moda • Calzado</p>
+                            </div>
+                        </div>
+                        <div class="p-5">
+                            <div class="flex items-center gap-1 mb-2">
+                                <span class="star-rating text-xs">★★★★☆</span>
+                                <span class="text-xs text-gray-400">(4.6)</span>
+                            </div>
+                            <h3 class="font-semibold text-gray-900 mb-1 line-clamp-2">Sneakers Air Max 2024 Edición Limitada</h3>
+                            <p class="text-sm text-gray-500 mb-3">Tecnología de amortiguación avanzada</p>
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <span class="text-2xl font-bold text-gray-900">$189</span>
+                                </div>
+                                <button class="w-10 h-10 bg-purple-600 text-white rounded-xl flex items-center justify-center hover:bg-purple-700 transition shadow-lg shadow-purple-200">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Product Card 4 -->
+                    <div class="card-hover bg-white rounded-2xl shadow-sm overflow-hidden animate-fade-in" style="animation-delay: 0.4s">
+                        <div class="relative">
+                            <img src="https://images.unsplash.com/photo-1585386959984-a4155224a1ad?w=400&h=400&fit=crop" alt="Backpack" class="w-full h-48 object-cover">
+                            <button class="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur rounded-full flex items-center justify-center text-gray-400 hover:text-red-500 transition">
+                                <i class="far fa-heart"></i>
+                            </button>
+                            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
+                                <p class="text-white text-xs font-medium">Hogar • Accesorios</p>
+                            </div>
+                        </div>
+                        <div class="p-5">
+                            <div class="flex items-center gap-1 mb-2">
+                                <span class="star-rating text-xs">★★★★★</span>
+                                <span class="text-xs text-gray-400">(4.9)</span>
+                            </div>
+                            <h3 class="font-semibold text-gray-900 mb-1 line-clamp-2">Mochila Antirrobo USB Premium</h3>
+                            <p class="text-sm text-gray-500 mb-3">Puerto USB, compartimento laptop, impermeable</p>
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <span class="text-2xl font-bold text-gray-900">$79</span>
+                                    <span class="text-sm text-gray-400 line-through ml-2">$129</span>
+                                </div>
+                                <button class="w-10 h-10 bg-purple-600 text-white rounded-xl flex items-center justify-center hover:bg-purple-700 transition shadow-lg shadow-purple-200">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Product Card 5 -->
+                    <div class="card-hover bg-white rounded-2xl shadow-sm overflow-hidden animate-fade-in" style="animation-delay: 0.5s">
+                        <div class="relative">
+                            <img src="https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=400&h=400&fit=crop" alt="Phone" class="w-full h-48 object-cover">
+                            <span class="badge-new absolute top-3 left-3 text-white text-xs font-bold px-3 py-1 rounded-full">NUEVO</span>
+                            <button class="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur rounded-full flex items-center justify-center text-gray-400 hover:text-red-500 transition">
+                                <i class="far fa-heart"></i>
+                            </button>
+                            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
+                                <p class="text-white text-xs font-medium">Tecnología • Smartphones</p>
+                            </div>
+                        </div>
+                        <div class="p-5">
+                            <div class="flex items-center gap-1 mb-2">
+                                <span class="star-rating text-xs">★★★★★</span>
+                                <span class="text-xs text-gray-400">(5.0)</span>
+                            </div>
+                            <h3 class="font-semibold text-gray-900 mb-1 line-clamp-2">iPhone 15 Pro Max 256GB</h3>
+                            <p class="text-sm text-gray-500 mb-3">Titanio, cámara 48MP, 5G</p>
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <span class="text-2xl font-bold text-gray-900">$1,199</span>
+                                </div>
+                                <button class="w-10 h-10 bg-purple-600 text-white rounded-xl flex items-center justify-center hover:bg-purple-700 transition shadow-lg shadow-purple-200">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Product Card 6 -->
+                    <div class="card-hover bg-white rounded-2xl shadow-sm overflow-hidden animate-fade-in" style="animation-delay: 0.6s">
+                        <div class="relative">
+                            <img src="https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=400&h=400&fit=crop" alt="Sunglasses" class="w-full h-48 object-cover">
+                            <span class="badge-sale absolute top-3 left-3 text-white text-xs font-bold px-3 py-1 rounded-full">-40%</span>
+                            <button class="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur rounded-full flex items-center justify-center text-gray-400 hover:text-red-500 transition">
+                                <i class="far fa-heart"></i>
+                            </button>
+                            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
+                                <p class="text-white text-xs font-medium">Moda • Accesorios</p>
+                            </div>
+                        </div>
+                        <div class="p-5">
+                            <div class="flex items-center gap-1 mb-2">
+                                <span class="star-rating text-xs">★★★★☆</span>
+                                <span class="text-xs text-gray-400">(4.4)</span>
+                            </div>
+                            <h3 class="font-semibold text-gray-900 mb-1 line-clamp-2">Gafas de Sol Polarizadas UV400</h3>
+                            <p class="text-sm text-gray-500 mb-3">Protección máxima, montura ligera titanio</p>
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <span class="text-2xl font-bold text-gray-900">$89</span>
+                                    <span class="text-sm text-gray-400 line-through ml-2">$149</span>
+                                </div>
+                                <button class="w-10 h-10 bg-purple-600 text-white rounded-xl flex items-center justify-center hover:bg-purple-700 transition shadow-lg shadow-purple-200">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Product Card 7 -->
+                    <div class="card-hover bg-white rounded-2xl shadow-sm overflow-hidden animate-fade-in" style="animation-delay: 0.7s">
+                        <div class="relative">
+                            <img src="https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?w=400&h=400&fit=crop" alt="Laptop" class="w-full h-48 object-cover">
+                            <button class="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur rounded-full flex items-center justify-center text-gray-400 hover:text-red-500 transition">
+                                <i class="far fa-heart"></i>
+                            </button>
+                            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
+                                <p class="text-white text-xs font-medium">Tecnología • Computación</p>
+                            </div>
+                        </div>
+                        <div class="p-5">
+                            <div class="flex items-center gap-1 mb-2">
+                                <span class="star-rating text-xs">★★★★★</span>
+                                <span class="text-xs text-gray-400">(4.7)</span>
+                            </div>
+                            <h3 class="font-semibold text-gray-900 mb-1 line-clamp-2">MacBook Air M3 13" 512GB SSD</h3>
+                            <p class="text-sm text-gray-500 mb-3">Chip M3, 18h batería, pantalla Retina</p>
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <span class="text-2xl font-bold text-gray-900">$1,449</span>
+                                </div>
+                                <button class="w-10 h-10 bg-purple-600 text-white rounded-xl flex items-center justify-center hover:bg-purple-700 transition shadow-lg shadow-purple-200">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Product Card 8 -->
+                    <div class="card-hover bg-white rounded-2xl shadow-sm overflow-hidden animate-fade-in" style="animation-delay: 0.8s">
+                        <div class="relative">
+                            <img src="https://images.unsplash.com/photo-1556906781-9a412961c28c?w=400&h=400&fit=crop" alt="Shoes" class="w-full h-48 object-cover">
+                            <span class="badge-hot absolute top-3 left-3 text-white text-xs font-bold px-3 py-1 rounded-full">HOT</span>
+                            <button class="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur rounded-full flex items-center justify-center text-red-500">
+                                <i class="fas fa-heart"></i>
+                            </button>
+                            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
+                                <p class="text-white text-xs font-medium">Deportes • Running</p>
+                            </div>
+                        </div>
+                        <div class="p-5">
+                            <div class="flex items-center gap-1 mb-2">
+                                <span class="star-rating text-xs">★★★★★</span>
+                                <span class="text-xs text-gray-400">(4.9)</span>
+                            </div>
+                            <h3 class="font-semibold text-gray-900 mb-1 line-clamp-2">Zapatillas Running Pro Carbon</h3>
+                            <p class="text-sm text-gray-500 mb-3">Placa de carbono, ultra ligero, 8mm drop</p>
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <span class="text-2xl font-bold text-gray-900">$229</span>
+                                </div>
+                                <button class="w-10 h-10 bg-purple-600 text-white rounded-xl flex items-center justify-center hover:bg-purple-700 transition shadow-lg shadow-purple-200">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Product Card 9 -->
+                    <div class="card-hover bg-white rounded-2xl shadow-sm overflow-hidden animate-fade-in" style="animation-delay: 0.9s">
+                        <div class="relative">
+                            <img src="https://images.unsplash.com/photo-1585386959984-a4155224a1ad?w=400&h=400&fit=crop" alt="Camera" class="w-full h-48 object-cover">
+                            <span class="badge-sale absolute top-3 left-3 text-white text-xs font-bold px-3 py-1 rounded-full">-25%</span>
+                            <button class="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur rounded-full flex items-center justify-center text-gray-400 hover:text-red-500 transition">
+                                <i class="far fa-heart"></i>
+                            </button>
+                            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
+                                <p class="text-white text-xs font-medium">Tecnología • Fotografía</p>
+                            </div>
+                        </div>
+                        <div class="p-5">
+                            <div class="flex items-center gap-1 mb-2">
+                                <span class="star-rating text-xs">★★★★★</span>
+                                <span class="text-xs text-gray-400">(4.8)</span>
+                            </div>
+                            <h3 class="font-semibold text-gray-900 mb-1 line-clamp-2">Cámara Mirrorless 4K 60fps</h3>
+                            <p class="text-sm text-gray-500 mb-3">Sensor full-frame, estabilización 5 ejes</p>
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <span class="text-2xl font-bold text-gray-900">$1,899</span>
+                                    <span class="text-sm text-gray-400 line-through ml-2">$2,499</span>
+                                </div>
+                                <button class="w-10 h-10 bg-purple-600 text-white rounded-xl flex items-center justify-center hover:bg-purple-700 transition shadow-lg shadow-purple-200">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Pagination -->
+                <div class="mt-10 flex items-center justify-center gap-2">
+                    <button class="w-10 h-10 rounded-xl border border-gray-200 flex items-center justify-center text-gray-400 hover:border-purple-600 hover:text-purple-600 transition">
+                        <i class="fas fa-chevron-left"></i>
+                    </button>
+                    <button class="w-10 h-10 rounded-xl bg-purple-600 text-white flex items-center justify-center font-medium">1</button>
+                    <button class="w-10 h-10 rounded-xl border border-gray-200 flex items-center justify-center text-gray-600 hover:border-purple-600 hover:text-purple-600 transition">2</button>
+                    <button class="w-10 h-10 rounded-xl border border-gray-200 flex items-center justify-center text-gray-600 hover:border-purple-600 hover:text-purple-600 transition">3</button>
+                    <span class="text-gray-400">...</span>
+                    <button class="w-10 h-10 rounded-xl border border-gray-200 flex items-center justify-center text-gray-600 hover:border-purple-600 hover:text-purple-600 transition">12</button>
+                    <button class="w-10 h-10 rounded-xl border border-gray-200 flex items-center justify-center text-gray-400 hover:border-purple-600 hover:text-purple-600 transition">
+                        <i class="fas fa-chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-gray-200 mt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-indigo-600 flex items-center justify-center">
+                            <i class="fas fa-shopping-bag text-white text-lg"></i>
+                        </div>
+                        <span class="text-2xl font-bold gradient-text">ShopVibe</span>
+                    </div>
+                    <p class="text-gray-500 text-sm">Tu destino premium para las mejores marcas y productos. Calidad garantizada.</p>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-gray-900 mb-4">Categorías</h4>
+                    <ul class="space-y-2 text-sm text-gray-500">
+                        <li><a href="#" class="hover:text-purple-600 transition">Tecnología</a></li>
+                        <li><a href="#" class="hover:text-purple-600 transition">Moda</a></li>
+                        <li><a href="#" class="hover:text-purple-600 transition">Hogar</a></li>
+                        <li><a href="#" class="hover:text-purple-600 transition">Deportes</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-gray-900 mb-4">Ayuda</h4>
+                    <ul class="space-y-2 text-sm text-gray-500">
+                        <li><a href="#" class="hover:text-purple-600 transition">Centro de ayuda</a></li>
+                        <li><a href="#" class="hover:text-purple-600 transition">Envíos</a></li>
+                        <li><a href="#" class="hover:text-purple-600 transition">Devoluciones</a></li>
+                        <li><a href="#" class="hover:text-purple-600 transition">Contacto</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-gray-900 mb-4">Newsletter</h4>
+                    <div class="flex gap-2">
+                        <input type="email" placeholder="Tu email" class="flex-1 px-4 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:outline-none focus:border-purple-500">
+                        <button class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-gray-200 mt-8 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
+                <p class="text-sm text-gray-500">© 2024 ShopVibe. Todos los derechos reservados.</p>
+                <div class="flex items-center gap-4">
+                    <a href="#" class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-purple-600 hover:text-white transition">
+                        <i class="fab fa-facebook-f"></i>
+                    </a>
+                    <a href="#" class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-purple-600 hover:text-white transition">
+                        <i class="fab fa-twitter"></i>
+                    </a>
+                    <a href="#" class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-600 hover:bg-purple-600 hover:text-white transition">
+                        <i class="fab fa-instagram"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Simulated interactivity
+        document.querySelectorAll('.category-active, .scenario-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                // Animation feedback
+                this.style.transform = 'scale(0.95)';
+                setTimeout(() => this.style.transform = '', 150);
+            });
+        });
+
+        // Add to cart animation
+        document.querySelectorAll('.fa-plus').forEach(btn => {
+            btn.parentElement.addEventListener('click', function(e) {
+                e.stopPropagation();
+                const original = this.innerHTML;
+                this.innerHTML = '<i class="fas fa-check"></i>';
+                this.classList.add('bg-green-500');
+                this.classList.remove('bg-purple-600');
+                
+                setTimeout(() => {
+                    this.innerHTML = original;
+                    this.classList.remove('bg-green-500');
+                    this.classList.add('bg-purple-600');
+                }, 1000);
+            });
+        });
+
+        // Heart toggle
+        document.querySelectorAll('.fa-heart').forEach(heart => {
+            heart.parentElement.addEventListener('click', function() {
+                const icon = this.querySelector('i');
+                if (icon.classList.contains('far')) {
+                    icon.classList.remove('far');
+                    icon.classList.add('fas', 'text-red-500');
+                } else if (!icon.classList.contains('text-red-500') && icon.classList.contains('fas')) {
+                    icon.classList.remove('fas', 'text-red-500');
+                    icon.classList.add('far');
+                }
+            });
+        });
+
+        // Price range live update
+        const priceRange = document.querySelector('.price-range');
+        const priceValue = priceRange.nextElementSibling.querySelector('.font-semibold');
+        priceRange.addEventListener('input', function() {
+            priceValue.textContent = '$' + parseInt(this.value).toLocaleString();
+        });
+    </script>
+</body>
+</html>
