@@ -482,6 +482,9 @@ void enviarBluetooth(ActionType action, int globalIndex) {
   int nextX = robotX;
   int nextY = robotY;
 
+  int oldX = robotX;
+  int oldY = robotY;
+
   if (globalIndex >= 0 && globalIndex < NUM_LEDS) {
     setBrilloLeds(globalIndex, BRILLO_100_PORCIENTO);
   }
@@ -519,6 +522,12 @@ void enviarBluetooth(ActionType action, int globalIndex) {
     mySerial.println(action);
     Serial.println();
     esperarNoBloqueante(9000);
+  }else{
+    Serial.println(": Accion no valida (movimiento fuera de limites)");
+    mySerial.println(12);
+    esperarNoBloqueante(3000);
+    robotX = oldX;
+    robotY = oldY;
   }
 
   if (globalIndex >= 0 && globalIndex < NUM_LEDS) {
