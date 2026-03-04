@@ -333,6 +333,8 @@ void botonPulsaciones() {
 // -------------------------------------------------------------------------
 void leerTodasColumnas() {
 
+    // allResistances[0] = 2;  //Bloque de control
+
     // allResistances[0] = 5;  //Bloque de control
     // allResistances[1] = 5;  //Bloque de control
     // allResistances[2] = 1;  //Arriba
