@@ -75,7 +75,8 @@ enum ActionType {
   INICIO_CORERRIDO = 8,
   HOMMING_COMPLETO = 9,
   INIT_HOMMING = 10,
-  RECORRIDO_TERMINADO = 11
+  RECORRIDO_TERMINADO = 11,
+  NO_VALIDA = 12
 };
 
 // --- Array de secuencias para el motor 28BYJ-48 (paso completo) ---
@@ -344,6 +345,7 @@ void playInstructionAudio(ActionType action) {
     case HOMMING_COMPLETO:trackNumber = 9; break;
     case INIT_HOMMING:    trackNumber = 10; break;
     case RECORRIDO_TERMINADO: trackNumber = 11; break;
+    case NO_VALIDA:        trackNumber = 12; break;
     default:              return;
   }
 
