@@ -57,7 +57,6 @@ const int STEPS_PER_REVOLUTION = 2048;
 // --- Velocidad de los motores ---
 const int MOTOR_SPEED_RPM = 12; // RPMs 
 const int MOTOR_SPEED_RPM_X = 8; // RPMs 
-const int HOMING_SPEED_RPM = 5; // RPMs para el homing (más lento para mayor seguridad)
 
 // --- Guarda el ultimo movimiento
 int calibration = 0;
