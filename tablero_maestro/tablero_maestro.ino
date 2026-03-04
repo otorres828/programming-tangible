@@ -333,20 +333,20 @@ void botonPulsaciones() {
 // -------------------------------------------------------------------------
 void leerTodasColumnas() {
 
-    allResistances[0] = 5;  //Bloque de control
-    allResistances[1] = 5;  //Bloque de control
-    allResistances[2] = 1;  //Arriba
-    allResistances[3] = 3;  //izquierda
-    allResistances[4] = 3;  //izquierda
-    allResistances[5] = 2;  //abajo
-    allResistances[6] = 2;  //abajo
-    allResistances[7] = 3;  //izquierda
+    // allResistances[0] = 5;  //Bloque de control
+    // allResistances[1] = 5;  //Bloque de control
+    // allResistances[2] = 1;  //Arriba
+    // allResistances[3] = 3;  //izquierda
+    // allResistances[4] = 3;  //izquierda
+    // allResistances[5] = 2;  //abajo
+    // allResistances[6] = 2;  //abajo
+    // allResistances[7] = 3;  //izquierda
 
-    allResistances[8] = 4;  //derecha
-    allResistances[9] = 4;  //derecha
-    allResistances[10] = 1;  //arriba
+    // allResistances[8] = 4;  //derecha
+    // allResistances[9] = 4;  //derecha
+    // allResistances[10] = 1;  //arriba
 
-    return;
+    // return;
         
     int currentGlobalIndex = 0;
 
