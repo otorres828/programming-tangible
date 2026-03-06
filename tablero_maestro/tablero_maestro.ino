@@ -523,7 +523,7 @@ void enviarBluetooth(ActionType action, int globalIndex) {
     Serial.print(": Accion valida");
     mySerial.println(action);
     Serial.println();
-    esperarNoBloqueante(9000);
+    esperarNoBloqueante(7000);
   }else{
     Serial.println(": Accion no valida (movimiento fuera de limites)");
     mySerial.println(12);
