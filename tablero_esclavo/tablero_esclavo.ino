@@ -8,7 +8,7 @@
 #include <Wire.h>  // Librería para comunicación I2C
 
 // Dirección I2C ÚNICA para cada Arduino de columna.
-#define I2C_SLAVE_ADDRESS 0x02  // <--- COLUMNA 1 (Cambiar para otros esclavos)
+#define I2C_SLAVE_ADDRESS 0x01  // <--- COLUMNA 1 (Cambiar para otros esclavos)
 
 // --- DEFINICIONES DE PINES Y VALORES DE REFERENCIA ---
 
@@ -132,10 +132,13 @@ void printResistance(float resistance, int rxNumber) {
     // Formatear la resistencia para mostrar en Ohms, kOhms o MOhms
       if (resistance >= 1000.0) { // Mayor o igual a 1 kOhms
       Serial.print(resistance / 1000.0, 2);
-      Serial.println(" kOhms");
+      Serial.print(" kOhms - ");
+      Serial.println(getAccionText(mapResistanceToAction(resistance)));
       } else { // Menor de 1 kOhms
       Serial.print(resistance, 2);
-      Serial.println(" Ohms");
+      Serial.print(" Ohms - ");
+      Serial.println(getAccionText(mapResistanceToAction(resistance)));
+
     }
     
   }
@@ -201,6 +204,18 @@ void requestEvent() {
       fb.f = -1; 
     }
     Wire.write(fb.b, 4); // Envía los 4 bytes de cada float
+  }
+}
+
+String getAccionText(ActionType action) {
+  switch (action) {
+    case MOVER_ARRIBA:    return "Avanzar";
+    case MOVER_ABAJO:     return "Retroceder";
+    case MOVER_IZQUIERDA: return "Izquierda";
+    case MOVER_DERECHA:   return "Derecha";
+    case BLOQUE_CONTROL:  return "Bloque de Control";
+    case MELODIA_1:       return "Melodia";
+    default:              return "Ninguna instruccion / Error";
   }
 }
 

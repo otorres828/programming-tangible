@@ -57,8 +57,8 @@ const int NUM_LEDS = 11; // 8 instrucciones de columnas + 3 de bloque de control
 // Define los valores de brillo (PWM)
 // El PCA9685 tiene una resolución de 12 bits, lo que significa un rango de 0 a 4095.
 const int BRILLO_OFF = 0;            // LED apagado
-const int BRILLO_20_PORCIENTO = 100; // 20% de 4095
-const int BRILLO_100_PORCIENTO = 4095; // LED al máximo brillo
+const int BRILLO_20_PORCIENTO = 80; // 20% de 4095
+const int BRILLO_100_PORCIENTO = 4000; // LED al máximo brillo
 
 // ---  VARIABLES GLOBALES PARA LA MÁQUINA DE ESTADOS Y BOTÓN ---
 enum SystemState { ESTADO_LEER, ESTADO_CORRER, ESTADO_PAUSA, ESTADO_REINICIO };
@@ -593,8 +593,8 @@ void ejecutarBlockControl(int globalIndexPrincipal) {
 }
 
 bool validarPosicionXY(int x, int y) {
-  const int GRID_SIZE = 5;
-  return x >= 0 && x < GRID_SIZE && y >= 0 && y < GRID_SIZE;
+  const int GRID_MAX = 5;
+  return x >= 0 && x <= GRID_MAX && y >= 0 && y <= GRID_MAX;
 }
 
 String getAccionText(ActionType action) {
