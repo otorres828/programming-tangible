@@ -3,6 +3,7 @@
 // Recibe instrucciones del Arduino Maestro vía Bluetooth y controla 2 motores paso a paso.
 // Adaptado para un sistema H-BOT.
 // Incluye proceso de homing/calibración con finales de carrera (sensor de efecto hall) y reproducción de audio.
+// ACTUALIZADO: Control no bloqueante con micros(), velocidad unificada y secuencia de DOBLE BOBINA para MÁXIMO TORQUE.
 // ---------------------------------------------------------------------------------------
 
 #include <SoftwareSerial.h> // Librería para comunicación Bluetooth
@@ -34,7 +35,6 @@ int btStableState = LOW;
 unsigned long btLastDebounceTime = 0;
 const unsigned long BT_STATE_DEBOUNCE_MS = 200; // tiempo de debounce para pin STATE (ms)
 
-
 // --- Definiciones para los motores 28BYJ-48 con ULN2003 ---
 // Motor 1 (izquierda)
 #define IN1_M1 2
@@ -54,9 +54,19 @@ const int STEPS_PER_REVOLUTION = 2048;
 #define ENDSTOP_X_PIN A0 // Pin para el final de carrera del Eje X
 #define ENDSTOP_Y_PIN A1 // Pin para el final de carrera del Eje Y
 
-// --- Velocidad de los motores ---
-const int MOTOR_SPEED_RPM = 12; // RPMs 
-const int MOTOR_SPEED_RPM_X = 8; // RPMs 
+// --- Velocidad de los motores (UNIFICADA) ---
+// Reducida a 10 RPM para garantizar que el motor tenga la fuerza (torque) suficiente y no se atasque
+const int MOTOR_SPEED_RPM = 10; 
+
+// --- Variables para control de motores con micros() ---
+long motorM1Remaining = 0;
+long motorM2Remaining = 0;
+int currentStepM1 = 0;
+int currentStepM2 = 0;
+int directionM1 = 1;
+int directionM2 = 1;
+unsigned long lastMotorStep = 0;
+unsigned long motorIntervalMicros = 2000; // Se calculará dinámicamente
 
 // --- Guarda el ultimo movimiento
 int calibration = 0;
@@ -79,18 +89,20 @@ enum ActionType {
   NO_VALIDA = 12
 };
 
-// --- Array de secuencias para el motor 28BYJ-48 (paso completo) ---
+// --- Array de secuencias para el motor 28BYJ-48 (DOBLE BOBINA para MAXIMO TORQUE) ---
 const int steps[][4] = {
-  {1, 0, 0, 0}, // Paso 1 (IN1 ON)
-  {0, 1, 0, 0}, // Paso 2 (IN2 ON)
-  {0, 0, 1, 0}, // Paso 3 (IN3 ON)
-  {0, 0, 0, 1}  // Paso 4 (IN4 ON)
+  {1, 1, 0, 0}, // Paso 1 (IN1 e IN2 ON)
+  {0, 1, 1, 0}, // Paso 2 (IN2 e IN3 ON)
+  {0, 0, 1, 1}, // Paso 3 (IN3 e IN4 ON)
+  {1, 0, 0, 1}  // Paso 4 (IN4 e IN1 ON)
 };
 
 const int NUM_STEPS_SEQUENCE = 4;
 
 // --- CABECERAS DE FUNCIONES ---
 void setMotorPins(int in1, int in2, int in3, int in4, int stepIndex);
+void startMoveHbot(int stepsX, int stepsY, int motorSpeedRpm);
+void updateMotors();
 void moveHbot(int stepsX, int stepsY, int motorSpeedRpm);
 void doHoming(bool playAudio = true);
 void playInstructionAudio(ActionType action);
@@ -106,15 +118,12 @@ void setup() {
   bluetoothSerial.begin(9600);  //Inicializar Bluetooth Serial
   myMp3Serial.begin(9600); // Inicializar  DFPlayer
 
-
   Serial.println("CNC Esclavo Iniciado.");
 
   // Configuracion DFPlayer Mini
   myMp3Serial.listen(); 
   delay(500);
   
-  // begin(serial, acknowledge, reset)
-  // Ponemos 'false' en acknowledge para que no se bloquee esperando respuesta
   if (myDFPlayer.begin(myMp3Serial, false, false)) { 
     Serial.println(F("✅ DFPlayer: Conectado (Modo rápido)"));
     dfPlayerListo = true;
@@ -142,7 +151,7 @@ void setup() {
   btStableState = s;
   btLastDebounceTime = millis();
   Serial.print("BT_STATE_PIN inicial: "); Serial.println(s);
-  // Inicializar LEDs según estado actual
+  
   manejoLedBT(s);
 
   // Configurar pines de motores
@@ -164,7 +173,6 @@ void setup() {
 
 void loop() {
 
-
   // Leer pin STATE con debounce
   int raw = digitalRead(BT_STATE_PIN);
   if (raw != btRawLast) {
@@ -174,23 +182,21 @@ void loop() {
 
   if (millis() - btLastDebounceTime > BT_STATE_DEBOUNCE_MS) {
 
-
-      // El estado se considera estable
       if (raw != btStableState) {
         Serial.println("Bluetooth Estable...");
         btStableState = raw;
-        // Actualizar LEDs al cambiar el estado estable
         manejoLedBT(btStableState);
+        
         if (btStableState == HIGH && !btConnected) {
           btConnected = true;
           Serial.println("Bluetooth: conectado (STATE pin). Ejecutando homing...");
           if (!homingDone) {
-            doHoming(); // Homing al conectar por STATE pin
+            doHoming(); 
             homingDone = true;
           }
         } else if (btStableState == LOW && btConnected) {
           btConnected = false;
-          homingDone = false; // permitir homing en la próxima conexión
+          homingDone = false; 
           Serial.println("Bluetooth: desconectado (STATE pin).");
           playInstructionAudio(CONEXION_PERDIDA);
         }
@@ -198,8 +204,6 @@ void loop() {
   }
   
   if (btConnected) {
-
-      // Lectura de Bluetooth 
       if (bluetoothSerial.isListening() && bluetoothSerial.available() > 0) {
           bluetoothSerial.setTimeout(50); 
           String receivedAction = bluetoothSerial.readStringUntil(':'); 
@@ -208,15 +212,12 @@ void loop() {
           Serial.print("Comando recibido: ");
           Serial.println(receivedAction);
 
-          if (receivedAction.length() > 0 ) { // Si no es un número válido, procesar como comando
+          if (receivedAction.length() > 0 ) { 
               ActionType action = (ActionType)receivedAction.toInt();
               executeAction(action);
           }
       }
-
-    
   } else {
-    // Si no está conectado, vaciar cualquier dato pendiente y no ejecutar instrucciones
     while (bluetoothSerial.available()) {
       bluetoothSerial.read();
     }
@@ -228,7 +229,6 @@ void loop() {
 // ------------------------------------------------------------------------
 int manejoLedBT(int stableState){
   bool prev = conectado;
-  // Set LEDs deterministically based on debounced state
   if (stableState == HIGH) {
     digitalWrite(ledVerde, HIGH);
     digitalWrite(ledRojo, LOW);
@@ -239,7 +239,6 @@ int manejoLedBT(int stableState){
     conectado = false;
   }
 
-  // Log only on transitions
   if (conectado && !prev) {
     Serial.println(">>> ESTADO: CONECTADO <<<");
   } else if (!conectado && prev) {
@@ -256,43 +255,55 @@ void setMotorPins(int in1, int in2, int in3, int in4, int stepIndex) {
   digitalWrite(in4, steps[stepIndex][3]);
 }
 
-void moveHbot(int stepsX, int stepsY, int motorSpeedRpm) {
-
+// ------------------------------------------------------------------------
+// NUEVAS FUNCIONES DE CONTROL DE MOTORES
+// ------------------------------------------------------------------------
+void startMoveHbot(int stepsX, int stepsY, int motorSpeedRpm) {
   if (motorSpeedRpm <= 0) motorSpeedRpm = 1;
+  
   unsigned long denom = (unsigned long)STEPS_PER_REVOLUTION * (unsigned long)motorSpeedRpm;
-  unsigned long delayBetweenSteps = 60000000UL / denom; // microsegundos
-  
-  // Calcular los pasos para cada motor en base a la cinemática del H-bot
-  // stepsX > 0 mueve DERECHA, stepsX < 0 mueve IZQUIERDA
-  // stepsY > 0 mueve ARRIBA, stepsY < 0 mueve ABAJO
-  int stepsM1 = stepsY - stepsX;
-  int stepsM2 = stepsY + stepsX;
-  
-  int maxSteps = max(abs(stepsM1), abs(stepsM2));
+  motorIntervalMicros = 60000000UL / denom; 
 
-  int currentStepM1 = 0;
-  int currentStepM2 = 0;
-  int directionM1 = (stepsM1 > 0) ? 1 : -1;
-  int directionM2 = (stepsM2 > 0) ? 1 : -1;
+  long stepsM1 = stepsY - stepsX;
+  long stepsM2 = stepsY + stepsX;
 
-  for(int j=0;j<2;j++){
-    for (int i = 0; i < maxSteps; i++) {
-      if (i < abs(stepsM1)) {
-        setMotorPins(IN1_M1, IN2_M1, IN3_M1, IN4_M1, currentStepM1);
-        currentStepM1 = (currentStepM1 + directionM1 + NUM_STEPS_SEQUENCE) % NUM_STEPS_SEQUENCE;
-      }
-      if (i < abs(stepsM2)) {
-        setMotorPins(IN1_M2, IN2_M2, IN3_M2, IN4_M2, currentStepM2);
-        currentStepM2 = (currentStepM2 + directionM2 + NUM_STEPS_SEQUENCE) % NUM_STEPS_SEQUENCE;
-      }
-      delayMicroseconds(delayBetweenSteps);
-    }
+  directionM1 = (stepsM1 > 0) ? 1 : -1;
+  directionM2 = (stepsM2 > 0) ? 1 : -1;
 
+  motorM1Remaining = abs(stepsM1);
+  motorM2Remaining = abs(stepsM2);
+}
+
+void updateMotors() {
+  if (motorM1Remaining == 0 && motorM2Remaining == 0) return;
+
+  if (micros() - lastMotorStep < motorIntervalMicros) return;
+  lastMotorStep = micros();
+
+  if (motorM1Remaining > 0) {
+    setMotorPins(IN1_M1, IN2_M1, IN3_M1, IN4_M1, currentStepM1);
+    currentStepM1 = (currentStepM1 + directionM1 + NUM_STEPS_SEQUENCE) % NUM_STEPS_SEQUENCE;
+    motorM1Remaining--;
   }
-  
-  // Apagar todas las bobinas
-  digitalWrite(IN1_M1, LOW); digitalWrite(IN2_M1, LOW); digitalWrite(IN3_M1, LOW); digitalWrite(IN4_M1, LOW);
-  digitalWrite(IN1_M2, LOW); digitalWrite(IN2_M2, LOW); digitalWrite(IN3_M2, LOW); digitalWrite(IN4_M2, LOW);
+
+  if (motorM2Remaining > 0) {
+    setMotorPins(IN1_M2, IN2_M2, IN3_M2, IN4_M2, currentStepM2);
+    currentStepM2 = (currentStepM2 + directionM2 + NUM_STEPS_SEQUENCE) % NUM_STEPS_SEQUENCE;
+    motorM2Remaining--;
+  }
+
+  // Importante: al terminar, apaga las bobinas para que no se sobrecalienten
+  if (motorM1Remaining == 0 && motorM2Remaining == 0) {
+    digitalWrite(IN1_M1, LOW); digitalWrite(IN2_M1, LOW); digitalWrite(IN3_M1, LOW); digitalWrite(IN4_M1, LOW);
+    digitalWrite(IN1_M2, LOW); digitalWrite(IN2_M2, LOW); digitalWrite(IN3_M2, LOW); digitalWrite(IN4_M2, LOW);
+  }
+}
+
+void moveHbot(int stepsX, int stepsY, int motorSpeedRpm) {
+  startMoveHbot(stepsX, stepsY, motorSpeedRpm);
+  while (motorM1Remaining > 0 || motorM2Remaining > 0) {
+    updateMotors();
+  }
 }
 
 void doHoming(bool playAudio = true) {
@@ -302,9 +313,7 @@ void doHoming(bool playAudio = true) {
   }
   Serial.println("Iniciando Homing (H-Bot)...");
   const int steps = 50;
-  // const int steps = STEPS_PER_REVOLUTION / 2;
 
-  // Mover el Eje y (ambos motores en la misma dirección)
   Serial.println("Homing Eje Y (moviendo ABAJO)...");
   playInstructionAudio(MOVER_ABAJO);
   while (digitalRead(ENDSTOP_Y_PIN) == HIGH) {
@@ -316,7 +325,6 @@ void doHoming(bool playAudio = true) {
   moveHbot(steps - 20, 0, MOTOR_SPEED_RPM);
   delay(1500);
 
-  // Mover el Eje x (motores en direcciones opuestas)
   Serial.println("Homing Eje X (moviendo izquierda)...");
   playInstructionAudio(MOVER_IZQUIERDA);
   while (digitalRead(ENDSTOP_X_PIN) == HIGH) {
@@ -345,12 +353,11 @@ void playInstructionAudio(ActionType action) {
     case HOMMING_COMPLETO:trackNumber = 9; break;
     case INIT_HOMMING:    trackNumber = 10; break;
     case RECORRIDO_TERMINADO: trackNumber = 11; break;
-    case NO_VALIDA:        trackNumber = 12; break;
+    case NO_VALIDA:       trackNumber = 12; break;
     default:              return;
   }
 
   if(dfPlayerListo) {
-    // Ajuste de impresión para evitar errores de concatenación
     Serial.print("Reproduciendo audio para acción: ");
     Serial.println((int)action);
 
@@ -361,11 +368,9 @@ void playInstructionAudio(ActionType action) {
       delay(5500);
     }
 
-    // Regresamos al Bluetooth
     delay(30); 
     bluetoothSerial.listen();
     
-    // Limpieza de buffer express
     while(bluetoothSerial.available() > 0) { bluetoothSerial.read(); }
     
   } else {
@@ -377,7 +382,8 @@ void executeAction(ActionType action) {
   
   playInstructionAudio(action);
   calibrationX(action);
-  const int steps = (STEPS_PER_REVOLUTION / 2) + 240;
+  
+  const int steps = 3070;
 
   switch (action) {
     case MOVER_ARRIBA:
@@ -390,45 +396,41 @@ void executeAction(ActionType action) {
       break;
     case MOVER_IZQUIERDA:
       Serial.println("Moviendo IZQUIERDA...");
-      moveHbot(0, -steps, MOTOR_SPEED_RPM_X);
+      moveHbot(0, -steps, MOTOR_SPEED_RPM); 
       break;
     case MOVER_DERECHA:
       Serial.println("Moviendo DERECHA...");
-      moveHbot(0, steps, MOTOR_SPEED_RPM_X);
+      moveHbot(0, steps, MOTOR_SPEED_RPM); 
       break;
     case MELODIA_1:
       Serial.println("Reproduciendo Melodia 1...");
       break;
     case DO_HOMMING:
     case INIT_HOMMING:
-      doHoming(false); // Ejecutar homing sin reproducir audio adicional (ya se reprodujo antes)
+      doHoming(false); 
       break;
     default:
       Serial.println("Instruccion desconocida.");
       break;
   }
-
 }
 
 void calibrationX(ActionType currentAction) {
   
-    // Solo corregimos si el movimiento es horizontal
     if (currentAction != MOVER_IZQUIERDA && currentAction != MOVER_DERECHA) {
-        return; // No corregimos si es ARRIBA o ABAJO
+        return; 
     }
 
-    // Si la última acción es distinta a la actual, aplicamos la corrección
     if (calibration != 0 && calibration != currentAction) {
-        const int CALIBRATION_STEPS = 200; // Cantidad de pasos para compensar backlash
+        const int CALIBRATION_STEPS = 200; 
         Serial.println("Aplicando calibración por cambio de dirección...");
 
         if (currentAction == MOVER_IZQUIERDA) {
-            moveHbot(0,-CALIBRATION_STEPS,  MOTOR_SPEED_RPM_X); // mueve un poco a la izquierda
+            moveHbot(0, -CALIBRATION_STEPS, MOTOR_SPEED_RPM); 
         } else if (currentAction == MOVER_DERECHA) {
-            moveHbot(0,CALIBRATION_STEPS,  MOTOR_SPEED_RPM_X); // mueve un poco a la derecha
+            moveHbot(0, CALIBRATION_STEPS, MOTOR_SPEED_RPM); 
         }
     }
 
-    // Guardamos la acción actual como la última ejecutada
     calibration = currentAction;
 }
