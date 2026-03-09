@@ -408,9 +408,7 @@ void executeAction(ActionType action) {
   playInstructionAudio(action);
   calibrationX(action);
   
-  // Duplicamos los pasos para alcanzar exactamente los 5 cm
-  // Original: (STEPS_PER_REVOLUTION / 2) + 240
-  const int steps = ((STEPS_PER_REVOLUTION / 2) + 240) * 2; 
+  const int steps = 2528; 
 
   switch (action) {
     case MOVER_ARRIBA:

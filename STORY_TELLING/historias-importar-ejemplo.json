@@ -1,0 +1,107 @@
+[
+  {
+    "id": 0,
+    "name": "Ruta de Símbolos",
+    "theme": "astro",
+    "icons": {
+      "A1": "🤖",
+      "B1": "⭐",
+      "C1": "🔵🔵",
+      "D1": "3",
+      "E1": "🔺",
+      "E2": "✋✋",
+      "D3": "🟦🟦",
+      "C4": "⭐⭐",
+      "E5": "🏁",
+      "B3": "🌳"
+    },
+    "instructions": [
+      {
+        "id": "r1",
+        "text": "Inicia en A1 con el robot."
+      },
+      {
+        "id": "r2",
+        "text": "Primero ve a la estrella en B1."
+      },
+      {
+        "id": "r3",
+        "text": "Luego ve a 2 círculos en C1."
+      },
+      {
+        "id": "r4",
+        "text": "Después busca el número 3 en D1."
+      },
+      {
+        "id": "r5",
+        "text": "Continúa hasta el triángulo en E1 y termina en la meta E5."
+      }
+    ],
+    "genInst": "Sigue la ruta por orden: estrella -> 2 círculos -> número -> triángulo -> meta."
+  },
+  {
+    "id": 1,
+    "name": "Aventura Animal",
+    "theme": "bee",
+    "icons": {
+      "A1": "🐶",
+      "B2": "🐱",
+      "C2": "🐴",
+      "D2": "🐮",
+      "E2": "🦁",
+      "E3": "🐜",
+      "D4": "🐢",
+      "C5": "🐟",
+      "B4": "⭐",
+      "E5": "🏠"
+    },
+    "instructions": [
+      {
+        "id": "a1",
+        "text": "Comienza en A1 con el perro y visita a cada animal amigo."
+      },
+      {
+        "id": "a2",
+        "text": "Pasa por gato, caballo, vaca y león en ese orden."
+      },
+      {
+        "id": "a3",
+        "text": "Luego visita hormiga, tortuga y pez."
+      },
+      {
+        "id": "a4",
+        "text": "Si quieres un reto extra, pisa la estrella en B4 antes de llegar a casa."
+      }
+    ],
+    "genInst": "Recorre el tablero de animales y llega a la casa final en E5."
+  },
+  {
+    "id": 2,
+    "name": "Misión Números 1-9",
+    "theme": "dino",
+    "icons": {
+      "A1": "🦖",
+      "B1": "1",
+      "C1": "2",
+      "D1": "3",
+      "E1": "4",
+      "E2": "5",
+      "D3": "6",
+      "C3": "7",
+      "B4": "8",
+      "A5": "9",
+      "E5": "🏰"
+    },
+    "instructions": [
+      {
+        "id": "n1",
+        "text": "Empieza en A1 y toca los números del 1 al 9 en orden."
+      },
+      {
+        "id": "n2",
+        "text": "Después de tocar el 9, ve al castillo en E5."
+      }
+    ],
+    "genInst": "Secuencia numérica: 1 al 9 y final en el castillo."
+  }
+]
