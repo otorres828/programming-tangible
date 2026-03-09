@@ -60,6 +60,11 @@ const int BRILLO_OFF = 0;            // LED apagado
 const int BRILLO_20_PORCIENTO = 80; // 20% de 4095
 const int BRILLO_100_PORCIENTO = 4000; // LED al máximo brillo
 
+// Filtros para evitar parpadeo por ruido o ráfagas I2C.
+const int UMBRAL_PRESENCIA_ON = 20;
+const int UMBRAL_PRESENCIA_OFF = 5;
+const unsigned long LED_UPDATE_MIN_MS = 25;
+
 // ---  VARIABLES GLOBALES PARA LA MÁQUINA DE ESTADOS Y BOTÓN ---
 enum SystemState { ESTADO_LEER, ESTADO_CORRER, ESTADO_PAUSA, ESTADO_REINICIO };
 SystemState estadoSistemaActual = ESTADO_LEER;
@@ -69,6 +74,9 @@ int actualInstruccionIndex = 0; // Índice de la instrucción actual en la secue
 bool blockControlActivo = false;
 int blockControlOwnerIndex = -1;
 int blockControlSubIndex = 0;
+bool ledEstadoPrevio[NUM_LEDS] = {false};
+int ledBrilloPrevio[NUM_LEDS] = {-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
+unsigned long ledUltimaActualizacion[NUM_LEDS] = {0};
 
 // Variables para el manejo del botón (Debouncing y Pulsación Larga)
 unsigned long lastButtonStateChangeTime = 0;
@@ -83,6 +91,8 @@ const unsigned long LONG_PRESS_THRESHOLD = 1500; // 1.5 segundos para pulsación
 // Variable para el retardo no bloqueante entre acciones
 unsigned long lastActionExecutionTime = 0;
 const unsigned long DELAY_POR_INSTRUCCION = 100; // 100 ms de retraso entre la ejecución de acciones
+unsigned long lastReadColumnsTime = 0;
+const unsigned long INTERVALO_LECTURA_COLUMNAS = 120; // Evita saturar el bus I2C con lecturas/escrituras continuas
 
 // --- Opciones de detección de conexión Bluetooth ---
 #define BT_STATE_PIN A2
@@ -127,12 +137,15 @@ void setup() {
   }
 
   Wire.begin();
+  Wire.setClock(100000L); // 100kHz para mayor estabilidad en bus compartido/cableado largo.
 
   pwm.begin();
   pwm.setPWMFreq(1600);
 
   for (int q = 0; q < NUM_LEDS; q++) {
     pwm.setPWM(q, 0, BRILLO_20_PORCIENTO);
+    ledBrilloPrevio[q] = BRILLO_20_PORCIENTO;
+    ledEstadoPrevio[q] = true;
   }
 
   pinMode(BOTON_INICIO, INPUT_PULLUP);
@@ -157,6 +170,7 @@ void setup() {
 }
 
 void loop() {
+
   int raw = digitalRead(BT_STATE_PIN);
   if (raw != btRawLast) {
     btLastDebounceTime = millis();
@@ -170,8 +184,14 @@ void loop() {
     if (btStableState == HIGH && !btConnected) {
       btConnected = true;
       Serial.println("Bluetooth MAESTRO: conectado (STATE pin). Enviando homing...");
+
+      // Al conectar, todos los LEDs deben quedar visibles al 20%.
+      for (int i = 0; i < NUM_LEDS; i++) {
+        setBrilloLeds(i, BRILLO_20_PORCIENTO);
+        ledEstadoPrevio[i] = true;
+      }
+
       if (!homingDone) {
-        // mySerial.println(DO_HOMMING);
         homingDone = true;
       }
     } else if (btStableState == LOW && btConnected) {
@@ -191,8 +211,11 @@ void loop() {
   switch (estadoSistemaActual) {
     case ESTADO_LEER:
     case ESTADO_PAUSA:
-      leerTodasColumnas();
-      copiarArrays();
+      if (millis() - lastReadColumnsTime >= INTERVALO_LECTURA_COLUMNAS) {
+        leerTodasColumnas();
+        copiarArrays();
+        lastReadColumnsTime = millis();
+      }
       break;
 
     case ESTADO_REINICIO:
@@ -392,16 +415,13 @@ void leerTodasColumnas() {
     }
     delay(10);
 
-    // Actualizar LEDs al 20% para las fichas presentes cuando se lee en IDLE/PAUSED
-    // Esta lógica ya está en el loop(), pero la ponemos aquí para ser explícitos
-    // que los LEDs se actualizan cada vez que se leen las resistencias.
-
+    // En modo lectura/pausa mantenemos todos los LEDs al 20%.
+    // Esto evita apagados al conectar o por valores transitorios de lectura.
     for (int i = 0; i < NUM_LEDS; i++) {
-        if (allResistances[i] > 0) {
+      if (!ledEstadoPrevio[i]) {
         setBrilloLeds(i, BRILLO_20_PORCIENTO);
-        } else {
-        setBrilloLeds(i, BRILLO_OFF);
-        }
+        ledEstadoPrevio[i] = true;
+      }
     }
 }
 
@@ -611,7 +631,18 @@ String getAccionText(ActionType action) {
 }
 
 void setBrilloLeds(int ledIndex, int brightness) {
-  if (ledIndex >= 0 && ledIndex < NUM_LEDS) {
-    pwm.setPWM(ledIndex, 0, brightness);
-  }
+  if (ledIndex < 0 || ledIndex >= NUM_LEDS) return;
+
+  if (brightness < 0) brightness = 0;
+  if (brightness > 4095) brightness = 4095;
+
+  if (brightness == ledBrilloPrevio[ledIndex]) return;
+
+  unsigned long now = millis();
+  bool esCambioCritico = (brightness == BRILLO_OFF || brightness == BRILLO_100_PORCIENTO);
+  if (!esCambioCritico && (now - ledUltimaActualizacion[ledIndex] < LED_UPDATE_MIN_MS)) return;
+
+  pwm.setPWM(ledIndex, 0, brightness);
+  ledBrilloPrevio[ledIndex] = brightness;
+  ledUltimaActualizacion[ledIndex] = now;
 }
