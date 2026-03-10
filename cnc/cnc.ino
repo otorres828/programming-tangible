@@ -86,7 +86,9 @@ enum ActionType {
   HOMMING_COMPLETO = 9,
   INIT_HOMMING = 10,
   RECORRIDO_TERMINADO = 11,
-  NO_VALIDA = 12
+  NO_VALIDA = 12,
+  CENTRO = 13,
+  CENTRO_TERMINADO = 14
 };
 
 // --- Array de secuencias para el motor 28BYJ-48 (DOBLE BOBINA para MAXIMO TORQUE) ---
@@ -339,6 +341,25 @@ void doHoming(bool playAudio = true) {
   Serial.println("Homing Completo.");
 }
 
+void doCenter(){
+
+  const int steps = 3070;
+  const int movementX = 60;
+
+  const int movimientoDerecha = (steps + movementX)*2;
+  const int movimientoArriba = steps*2;
+
+  Serial.println("Reiniciando al Centro (3,3)...");
+  
+  Serial.println("Moviendo DERECHA...");
+  moveHbot(0, (movimientoDerecha), MOTOR_SPEED_RPM); 
+
+  Serial.println("Moviendo ARRIBA...");
+  moveHbot(-movimientoArriba, 0, MOTOR_SPEED_RPM);
+
+  Serial.println("Reinicio al Centro Completo.");
+}
+
 void playInstructionAudio(ActionType action) {
   int trackNumber = 0;
   switch (action) {
@@ -354,6 +375,8 @@ void playInstructionAudio(ActionType action) {
     case INIT_HOMMING:    trackNumber = 10; break;
     case RECORRIDO_TERMINADO: trackNumber = 11; break;
     case NO_VALIDA:       trackNumber = 12; break;
+    case CENTRO:          trackNumber = 13; break;
+    case CENTRO_TERMINADO:trackNumber = 11; break;
     default:              return;
   }
 
@@ -409,6 +432,9 @@ void executeAction(ActionType action) {
     case DO_HOMMING:
     case INIT_HOMMING:
       doHoming(false); 
+      break;
+    case CENTRO:
+      doCenter(); 
       break;
     default:
       Serial.println("Instruccion desconocida.");
