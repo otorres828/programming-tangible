@@ -384,6 +384,7 @@ void executeAction(ActionType action) {
   calibrationX(action);
   
   const int steps = 3070;
+  const int movementX = 60;
 
   switch (action) {
     case MOVER_ARRIBA:
@@ -396,11 +397,11 @@ void executeAction(ActionType action) {
       break;
     case MOVER_IZQUIERDA:
       Serial.println("Moviendo IZQUIERDA...");
-      moveHbot(0, -steps, MOTOR_SPEED_RPM); 
+      moveHbot(0, -(steps + movementX), MOTOR_SPEED_RPM); 
       break;
     case MOVER_DERECHA:
       Serial.println("Moviendo DERECHA...");
-      moveHbot(0, steps, MOTOR_SPEED_RPM); 
+      moveHbot(0, (steps + movementX), MOTOR_SPEED_RPM); 
       break;
     case MELODIA_1:
       Serial.println("Reproduciendo Melodia 1...");
