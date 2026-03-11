@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Imprimir Estiques para Tablero CNC</title>
+    <style>
+        /* Configuraciones globales para visualización en pantalla */
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        h2 {
+            color: #555;
+            margin-top: 30px;
+            margin-bottom: 10px;
+            text-align: center;
+            font-size: 1.2rem;
+            text-transform: uppercase;
+        }
+
+        p.instrucciones {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+            padding: 15px;
+            border-radius: 5px;
+            max-width: 650px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        /* Botón de impresión opcional para la pantalla */
+        .print-btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .print-btn:hover {
+            background-color: #0056b3;
+        }
+
+        /* Contenedor principal de la cuadrícula */
+        .contenedor-impresion {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            max-width: 900px;
+        }
+
+        /* Configuración de la cuadrícula de emojis */
+        .cuadricula-emojis {
+            display: grid;
+            /* Crea columnas de 5cm exactos, ajustándose al ancho */
+            grid-template-columns: repeat(auto-fill, 5cm);
+            gap: 10px; /* Espacio entre los recuadros para facilitar el corte */
+            justify-content: center;
+        }
+
+        /* Estilo para cada casilla de emoji (la guía de corte) */
+        .casilla-emoji {
+            /* TAMAÑO EXACTO SOLICITADO PARA LA PEGATINA */
+            width: 5cm;
+            height: 5cm;
+            
+            /* Centrado del contenido */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            
+            /* Borde suave como guía de corte */
+            border: 1px solid #ddd;
+            background-color: #fff;
+            box-sizing: border-box; /* Asegura que el borde no sume al tamaño */
+        }
+
+        /* Estilo para el emoji o icono en sí */
+        .emoji {
+            /* Tamaño de fuente muy grande para llenar la casilla */
+            font-size: 3.5cm; /* Un poco menos de 5cm para dejar aire */
+            line-height: 1;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+
+        /* Ajustes cuando una casilla tiene mas de un emoji */
+        .emoji.multiple {
+            flex-wrap: wrap;
+            gap: 0.2cm;
+            padding: 0.2cm;
+            align-content: center;
+        }
+
+        .emoji.multiple[data-count="2"] {
+            font-size: 1.8cm;
+        }
+
+        .emoji.multiple[data-count="3"] {
+            font-size: 1.35cm;
+        }
+
+        /* Triangulos: se ven pequenos visualmente, asi que se amplian por separado */
+        .emoji.triangle {
+            font-size: 4.5cm;
+        }
+
+        .emoji.multiple.triangle[data-count="2"] {
+            font-size: 2.45cm;
+        }
+
+        .emoji.multiple.triangle[data-count="3"] {
+            font-size: 2cm;
+        }
+
+        .emoji.multiple .emoji-item {
+            flex: 0 0 auto;
+        }
+
+        /* Fuente especial para numeros 1 a 5 */
+        .emoji.numero-destacado {
+            font-family: "Rockwell", "Cambria", "Times New Roman", serif;
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            color: #1f5f8b;
+        }
+
+        /* =========================================
+           CONFIGURACIONES ESPECÍFICAS PARA IMPRESIÓN
+           ========================================= */
+        @media print {
+            /* Oculta la UI que no se debe imprimir */
+            body {
+                background-color: white;
+                padding: 0;
+                margin: 0;
+            }
+
+            h1, h2, p.instrucciones, button.print-btn {
+                display: none;
+            }
+
+            /* Configura el contenedor para que ocupe la página */
+            .contenedor-impresion {
+                box-shadow: none;
+                padding: 0;
+                margin: 0;
+            }
+
+            /* Fuerza la cuadrícula a usar 4 columnas de 5cm cada una (cabe en A4) */
+            .cuadricula-emojis {
+                display: grid;
+                grid-template-columns: repeat(4, 5cm);
+                gap: 5mm; /* Espacio para el corte */
+                margin: 0 auto;
+            }
+
+            /* Asegura que los bordes guía se impriman */
+            .casilla-emoji {
+                border: 1px solid #ccc; /* Un gris un poco más oscuro para que se note en papel */
+                -webkit-print-color-adjust: exact; /* Para Chrome/Safari */
+                print-color-adjust: exact; /* Estándar */
+                
+                /* Evita que una casilla se corte entre dos páginas */
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Generador de Estiques</h1>
+    
+    <p class="instrucciones">
+        Esta hoja está configurada para que cada recuadro mida exactamente **5x5 cm** (para casillas de 6x6 cm).<br>
+        **PARA IMPRIMIR:** <br>
+        1. Usa una escala de **100%**. *NO* uses "Ajustar a la página". <br>
+        2. Activa la opción **"Gráficos de fondo"**.
+    </p>
+
+    <button class="print-btn" onclick="window.print()">Imprimir Estiques (Tamaño 5x5cm)</button>
+
+    <div class="contenedor-impresion">
+        
+        <h2>Animales y Personajes</h2>
+        <div class="cuadricula-emojis">
+            <div class="casilla-emoji"><span class="emoji">🤖</span></div>
+            <div class="casilla-emoji"><span class="emoji">🐶</span></div>
+            <div class="casilla-emoji"><span class="emoji">🐱</span></div>
+            <div class="casilla-emoji"><span class="emoji">👨‍🚀</span></div>
+            <div class="casilla-emoji"><span class="emoji">🦖</span></div>
+            <div class="casilla-emoji"><span class="emoji">🐝</span></div>
+            <div class="casilla-emoji"><span class="emoji">🐰</span></div>
+            <div class="casilla-emoji"><span class="emoji">🦁</span></div>
+            <div class="casilla-emoji"><span class="emoji">🐼</span></div>
+            <div class="casilla-emoji"><span class="emoji">🐸</span></div>
+            <div class="casilla-emoji"><span class="emoji">🐴</span></div>
+            <div class="casilla-emoji"><span class="emoji">🐮</span></div>
+            <div class="casilla-emoji"><span class="emoji">🐜</span></div>
+            <div class="casilla-emoji"><span class="emoji">🐢</span></div>
+            <div class="casilla-emoji"><span class="emoji">🐟</span></div>
+        </div>
+
+        <h2>Objetos</h2>
+        <div class="cuadricula-emojis">
+            <div class="casilla-emoji"><span class="emoji">🍎</span></div>
+            <div class="casilla-emoji"><span class="emoji">🗝️</span></div>
+            <div class="casilla-emoji"><span class="emoji">🎁</span></div>
+            <div class="casilla-emoji"><span class="emoji">🚀</span></div>
+        </div>
+        
+        <h2>Rutas y Marcadores</h2>
+        <div class="cuadricula-emojis">
+            <div class="casilla-emoji"><span class="emoji">🔵</span></div>
+            <div class="casilla-emoji"><span class="emoji">🔵🔵</span></div>
+            <div class="casilla-emoji"><span class="emoji">🔵🔵🔵</span></div>
+            <div class="casilla-emoji"><span class="emoji">⭐</span></div>
+            <div class="casilla-emoji"><span class="emoji">⭐⭐</span></div>
+            <div class="casilla-emoji"><span class="emoji">⭐⭐⭐</span></div>
+            <div class="casilla-emoji"><span class="emoji">✋</span></div>
+            <div class="casilla-emoji"><span class="emoji">✋✋</span></div>
+            <div class="casilla-emoji"><span class="emoji">✋✋✋</span></div>
+            <div class="casilla-emoji"><span class="emoji">🔺</span></div>
+            <div class="casilla-emoji"><span class="emoji">💡</span></div>
+            <div class="casilla-emoji"><span class="emoji">💡💡</span></div>
+            <div class="casilla-emoji"><span class="emoji">🟦</span></div>
+            <div class="casilla-emoji"><span class="emoji">🟦🟦</span></div>
+            <div class="casilla-emoji"><span class="emoji">🟦🟦🟦</span></div>
+        </div>
+
+        <h2>Números</h2>
+        <div class="cuadricula-emojis">
+            <div class="casilla-emoji"><span class="emoji numero-destacado">1</span></div>
+            <div class="casilla-emoji"><span class="emoji numero-destacado">2</span></div>
+            <div class="casilla-emoji"><span class="emoji numero-destacado">3</span></div>
+        </div>
+
+        <h2>Naturaleza y Lugares</h2>
+        <div class="cuadricula-emojis">
+            <div class="casilla-emoji"><span class="emoji">🌳</span></div>
+            <div class="casilla-emoji"><span class="emoji">🌋</span></div>
+            <div class="casilla-emoji"><span class="emoji">🏠</span></div>
+            <div class="casilla-emoji"><span class="emoji">🏰</span></div>
+            <div class="casilla-emoji"><span class="emoji">🚪</span></div>
+            <div class="casilla-emoji"><span class="emoji">👕</span></div>
+            <div class="casilla-emoji"><span class="emoji">👖</span></div>
+            <div class="casilla-emoji"><span class="emoji">👞</span></div>
+
+
+        </div>
+
+    </div>
+
+<script>
+    // Divide texto en grafemas para tratar cada emoji como una unidad visual.
+    (function () {
+        const spans = document.querySelectorAll('.emoji');
+        const segmenter = (typeof Intl !== 'undefined' && Intl.Segmenter)
+            ? new Intl.Segmenter('es', { granularity: 'grapheme' })
+            : null;
+
+        spans.forEach((span) => {
+            const text = (span.textContent || '').trim();
+            if (!text) return;
+
+            const isOnlyTriangles = /^🔺+$/.test(text);
+            if (isOnlyTriangles) {
+                span.classList.add('triangle');
+            }
+
+            const emojis = segmenter
+                ? Array.from(segmenter.segment(text), part => part.segment).filter(Boolean)
+                : Array.from(text);
+
+            if (emojis.length <= 1) return;
+
+            span.classList.add('multiple');
+            span.setAttribute('data-count', String(emojis.length));
+            span.textContent = '';
+
+            emojis.forEach((emoji) => {
+                const item = document.createElement('span');
+                item.className = 'emoji-item';
+                item.textContent = emoji;
+                span.appendChild(item);
+            });
+        });
+    })();
+</script>
+</body>
+</html>
