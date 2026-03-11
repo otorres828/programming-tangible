@@ -1,14 +1,14 @@
 // ---------------------------------------------------------------------------------------
-// Código para Medidor de 4 Resistencias con Arduino Nano (ESCLAVO I2C)
-// Utiliza A0 para medir Vin y A1, A2, A3, A6 para medir Vout de cada divisor.
+// Código para Medidor de 3 Resistencias (SUBRUTINAS) con Arduino Nano (ESCLAVO I2C)
+// Utiliza A0 para medir Vin y A1, A2, A3 para medir Vout de cada divisor.
 // Nota: A4 y A5 quedan para comunicación I2C con el Arduino maestro.
 // ---------------------------------------------------------------------------------------
 
 #include <Wire.h>
 #include <math.h>
 
-// Dirección I2C única para este Arduino de columna
-#define I2C_SLAVE_ADDRESS 0x01
+// Dirección I2C única para este Arduino de subrutina
+#define I2C_SLAVE_ADDRESS 0x02
 
 // Pines
 #define inputVoltaje A0
@@ -24,7 +24,7 @@ const float ADC_REFERENCE_VOLTAGE = 3.3;
 // Cantidad de canales de instrucción por esclavo
 const int NUM_CHANNELS = 4;
 
-// Rangos de clasificación (Ohms)
+// Rangos de clasificación (Ohms) - Unificados con la lógica del Esclavo Principal
 const float RANGO_ARRIBA_MIN = 800.0;
 const float RANGO_ARRIBA_MAX = 1600.0;
 
@@ -48,7 +48,7 @@ const float RANGO_MELODIA_MAX = 15000.0;
 const float VIN_MIN_VALIDO = 0.05;
 const float VOUT_MIN_CORTO = 0.005;
 const float DEN_MIN = 0.01;
-const float RATIO_OPEN_CIRCUIT = 1.3;
+const float RATIO_OPEN_CIRCUIT = 1.2;
 const float RES_MAX_VALIDA = 200000.0;
 
 float measuredResistances[NUM_CHANNELS];
@@ -68,6 +68,7 @@ enum ActionType {
   MELODIA_1 = 6,
 };
 
+// Declaraciones de funciones
 float getVoltage(int analogPin);
 float getAverageVoltage(int analogPinToMeasure);
 float getResistanceValue(float v2, float v1);
@@ -84,7 +85,7 @@ void setup() {
   Wire.onRequest(requestEvent);
 
   Serial.println("----------------------------------");
-  Serial.println(" Medidor de 4 Resistencias Activo ");
+  Serial.println(" Medidor de 4 Inst.    ");
   Serial.println("----------------------------------");
   Serial.print("Voltaje de referencia ADC: ");
   Serial.print(ADC_REFERENCE_VOLTAGE, 1);
@@ -97,6 +98,7 @@ void setup() {
 }
 
 float getVoltage(int analogPin) {
+  // Lectura "basura" para permitir que el capacitor de retención del ADC se estabilice
   analogRead(analogPin);
   delayMicroseconds(200);
 
@@ -126,7 +128,7 @@ float getResistanceValue(float v2, float v1) {
     return -2.0;
   }
 
-  if ((v2 / v1) >= 11) {
+  if ((v2 / v1) >= RATIO_OPEN_CIRCUIT) {
     return -999.0;
   }
 

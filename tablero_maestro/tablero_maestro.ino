@@ -87,7 +87,7 @@ bool longPressTriggered = false; // Flag para saber si una pulsación larga ya f
 bool ultimaPulsacionFueReinicio = false; // Para detectar reinicio consecutivo
 
 const unsigned long BUTTON_DEBOUNCE_DELAY = 50;  // ms de delay para debounce
-const unsigned long LONG_PRESS_THRESHOLD = 1500; // 1.5 segundos para pulsación larga
+const unsigned long LONG_PRESS_THRESHOLD = 1000; // 1 segundos para pulsación larga
 
 // Variable para el retardo no bloqueante entre acciones
 unsigned long lastActionExecutionTime = 0;
@@ -347,20 +347,22 @@ void botonPulsaciones() {
       }
 
       if (ultimaPulsacionFueReinicio) {
-        Serial.println("Boton: REINICIO AL CENTRO (3,3) - codigo 13.");
+        Serial.println("Boton: REINICIO AL CENTRO (2,2) - codigo 13.");
         mySerial.print(13);
         delay(30000);
-        robotX = 3;
-        robotY = 3;
+        robotX = 2;
+        robotY = 2;
+        ultimaPulsacionFueReinicio = false;
+
       } else {
         Serial.println("Boton: REINICIO COMPLETO (0,0) - codigo 10.");
         mySerial.print(10);
         delay(6000);
         robotX = 0;
         robotY = 0;
+        ultimaPulsacionFueReinicio = true;
       }
 
-      ultimaPulsacionFueReinicio = true;
       estadoSistemaActual = ESTADO_LEER;
     }
   }
@@ -560,7 +562,7 @@ void enviarBluetooth(ActionType action, int globalIndex) {
     Serial.print(": Accion valida");
     mySerial.println(action);
     Serial.println();
-    esperarNoBloqueante(9000);
+    esperarNoBloqueante(10000);
   }else{
     Serial.println(": Accion no valida (movimiento fuera de limites)");
     mySerial.println(12);
@@ -631,7 +633,7 @@ void ejecutarBlockControl(int globalIndexPrincipal) {
 
 bool validarPosicionXY(int x, int y) {
   const int GRID_MAX = 5;
-  return x >= 0 && x <= GRID_MAX && y >= 0 && y <= GRID_MAX;
+  return x >= 0 && x < GRID_MAX && y >= 0 && y < GRID_MAX;
 }
 
 String getAccionText(ActionType action) {

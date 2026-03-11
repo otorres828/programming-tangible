@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Imprimir Estiques para Tablero CNC</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <style>
         /* Configuraciones globales para visualización en pantalla */
         body {
@@ -57,6 +58,44 @@
             background-color: #0056b3;
         }
 
+        .acciones {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .export-btn {
+            background-color: #198754;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .export-btn:hover {
+            background-color: #146c43;
+        }
+
+        .print-png-btn {
+            background-color: #b35c00;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .print-png-btn:hover {
+            background-color: #8f4900;
+        }
+
         /* Contenedor principal de la cuadrícula */
         .contenedor-impresion {
             background-color: white;
@@ -90,6 +129,8 @@
             border: 1px solid #ddd;
             background-color: #fff;
             box-sizing: border-box; /* Asegura que el borde no sume al tamaño */
+            border-radius: 50%;
+            overflow: hidden;
         }
 
         /* Estilo para el emoji o icono en sí */
@@ -139,6 +180,15 @@
             flex: 0 0 auto;
         }
 
+        /* Ajustes opticos de centrado para algunos emojis */
+        .emoji.ajuste-subir {
+            transform: translateY(-0.22cm);
+        }
+
+        .emoji.ajuste-bajar {
+            transform: translateY(0.22cm);
+        }
+
         /* Fuente especial para numeros 1 a 5 */
         .emoji.numero-destacado {
             font-family: "Rockwell", "Cambria", "Times New Roman", serif;
@@ -158,7 +208,7 @@
                 margin: 0;
             }
 
-            h1, h2, p.instrucciones, button.print-btn {
+            h1, h2, p.instrucciones, .acciones {
                 display: none;
             }
 
@@ -201,7 +251,11 @@
         2. Activa la opción **"Gráficos de fondo"**.
     </p>
 
-    <button class="print-btn" onclick="window.print()">Imprimir Estiques (Tamaño 5x5cm)</button>
+    <div class="acciones">
+        <button class="print-btn" onclick="window.print()">Imprimir Estiques (Tamaño 5x5cm)</button>
+        <button class="export-btn" onclick="descargarPngs()">Descargar PNG</button>
+        <button class="print-png-btn" onclick="imprimirComoPng()">Imprimir Como PNG (sin descarga)</button>
+    </div>
 
     <div class="contenedor-impresion">
         
@@ -218,7 +272,7 @@
             <div class="casilla-emoji"><span class="emoji">🐴</span></div>
             <div class="casilla-emoji"><span class="emoji">🐮</span></div>
             <div class="casilla-emoji"><span class="emoji">🐜</span></div>
-            <div class="casilla-emoji"><span class="emoji">🐢</span></div>
+            <div class="casilla-emoji"><span class="emoji ajuste-subir">🐢</span></div>
             <div class="casilla-emoji"><span class="emoji">🐟</span></div>
         </div>
 
@@ -238,15 +292,15 @@
             <div class="casilla-emoji"><span class="emoji">⭐</span></div>
             <div class="casilla-emoji"><span class="emoji">⭐⭐</span></div>
             <div class="casilla-emoji"><span class="emoji">⭐⭐⭐</span></div>
+            <div class="casilla-emoji"><span class="emoji">☝️</span></div>
+            <div class="casilla-emoji"><span class="emoji">✌️</span></div>
             <div class="casilla-emoji"><span class="emoji">✋</span></div>
-            <div class="casilla-emoji"><span class="emoji">✋✋</span></div>
-            <div class="casilla-emoji"><span class="emoji">✋✋✋</span></div>
             <div class="casilla-emoji"><span class="emoji">🔺</span></div>
             <div class="casilla-emoji"><span class="emoji">💡</span></div>
             <div class="casilla-emoji"><span class="emoji">💡💡</span></div>
             <div class="casilla-emoji"><span class="emoji">🟦</span></div>
             <div class="casilla-emoji"><span class="emoji">🟦🟦</span></div>
-            <div class="casilla-emoji"><span class="emoji">🟦🟦🟦</span></div>
+            <div class="casilla-emoji"><span class="emoji ajuste-bajar">🟦🟦🟦</span></div>
         </div>
 
         <h2>Números</h2>
@@ -265,7 +319,7 @@
             <div class="casilla-emoji"><span class="emoji">🚪</span></div>
             <div class="casilla-emoji"><span class="emoji">👕</span></div>
             <div class="casilla-emoji"><span class="emoji">👖</span></div>
-            <div class="casilla-emoji"><span class="emoji">👞</span></div>
+            <div class="casilla-emoji"><span class="emoji ajuste-subir">👞</span></div>
 
 
         </div>
@@ -307,6 +361,147 @@
             });
         });
     })();
+
+    async function descargarPngs() {
+        const celdas = Array.from(document.querySelectorAll('.casilla-emoji'));
+        if (!celdas.length) {
+            alert('No hay casillas para exportar.');
+            return;
+        }
+
+        if (typeof html2canvas === 'undefined') {
+            alert('No se pudo cargar la libreria de exportacion.');
+            return;
+        }
+
+        const boton = document.querySelector('.export-btn');
+        const textoOriginal = boton ? boton.textContent : '';
+
+        try {
+            if (boton) {
+                boton.disabled = true;
+                boton.textContent = 'Descargando...';
+            }
+
+            for (let i = 0; i < celdas.length; i++) {
+                const clon = celdas[i].cloneNode(true);
+                const contenedorTemporal = document.createElement('div');
+                contenedorTemporal.style.position = 'fixed';
+                contenedorTemporal.style.left = '-10000px';
+                contenedorTemporal.style.top = '0';
+                contenedorTemporal.style.padding = '0';
+                contenedorTemporal.style.margin = '0';
+                contenedorTemporal.appendChild(clon);
+                document.body.appendChild(contenedorTemporal);
+
+                const canvas = await html2canvas(clon, {
+                    backgroundColor: null,
+                    scale: 3,
+                    useCORS: true
+                });
+
+                document.body.removeChild(contenedorTemporal);
+
+                const nombre = 'estique_' + String(i + 1).padStart(2, '0') + '.png';
+
+                const enlace = document.createElement('a');
+                enlace.href = canvas.toDataURL('image/png');
+                enlace.download = nombre;
+                document.body.appendChild(enlace);
+                enlace.click();
+                document.body.removeChild(enlace);
+
+                // Pequena pausa para evitar que el navegador bloquee multiples descargas.
+                await new Promise((resolve) => setTimeout(resolve, 120));
+            }
+        } catch (error) {
+            console.error(error);
+            alert('No se pudo exportar en PNG. Revisa la consola del navegador.');
+        } finally {
+            if (boton) {
+                boton.disabled = false;
+                boton.textContent = textoOriginal || 'Descargar PNG';
+            }
+        }
+    }
+
+    async function imprimirComoPng() {
+        const celdas = Array.from(document.querySelectorAll('.casilla-emoji'));
+        if (!celdas.length) {
+            alert('No hay casillas para imprimir.');
+            return;
+        }
+
+        if (typeof html2canvas === 'undefined') {
+            alert('No se pudo cargar la libreria de imagenes.');
+            return;
+        }
+
+        const boton = document.querySelector('.print-png-btn');
+        const textoOriginal = boton ? boton.textContent : '';
+
+        try {
+            if (boton) {
+                boton.disabled = true;
+                boton.textContent = 'Preparando impresion...';
+            }
+
+            const imagenes = [];
+            for (let i = 0; i < celdas.length; i++) {
+                const clon = celdas[i].cloneNode(true);
+                const contenedorTemporal = document.createElement('div');
+                contenedorTemporal.style.position = 'fixed';
+                contenedorTemporal.style.left = '-10000px';
+                contenedorTemporal.style.top = '0';
+                contenedorTemporal.appendChild(clon);
+                document.body.appendChild(contenedorTemporal);
+
+                const canvas = await html2canvas(clon, {
+                    backgroundColor: '#ffffff',
+                    scale: 3,
+                    useCORS: true
+                });
+
+                document.body.removeChild(contenedorTemporal);
+                imagenes.push(canvas.toDataURL('image/png'));
+            }
+
+            const ventana = window.open('', '_blank');
+            if (!ventana) {
+                alert('El navegador bloqueo la ventana de impresion. Habilita pop-ups para este sitio.');
+                return;
+            }
+
+            const html = [
+                '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Impresion PNG</title>',
+                '<style>',
+                'body{margin:0;padding:12mm;font-family:Arial,sans-serif;background:#fff;}',
+                '.grid{display:grid;grid-template-columns:repeat(4,5cm);gap:5mm;justify-content:center;}',
+                '.item{width:5cm;height:5cm;border-radius:50%;overflow:hidden;border:1px solid #ccc;box-sizing:border-box;}',
+                '.item img{width:100%;height:100%;display:block;}',
+                '@media print{body{padding:0;}.grid{margin:0 auto;}}',
+                '</style></head><body><div class="grid">'
+            ];
+
+            for (let i = 0; i < imagenes.length; i++) {
+                html.push('<div class="item"><img src="' + imagenes[i] + '" alt="estique_' + (i + 1) + '"></div>');
+            }
+
+            html.push('</div><script>window.onload=function(){window.print();};<\/script></body></html>');
+
+            ventana.document.open();
+            ventana.document.write(html.join(''));
+            ventana.document.close();
+        } catch (error) {
+            console.error(error);
+            alert('No se pudo preparar la impresion en PNG.');
+        } finally {
+            if (boton) {
+                boton.disabled = false;
+                boton.textContent = textoOriginal || 'Imprimir Como PNG (sin descarga)';
+            }
+        }
+    }
 </script>
 </body>
 </html>

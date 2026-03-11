@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Storytelling Editor Pro - Tableros Persistentes</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <style>
         .grid-board {
             display: grid;
@@ -119,6 +120,7 @@
             <div class="flex flex-col gap-2 mt-8 pt-4 border-t">
                 <button onclick="window.print()" class="w-full bg-blue-500 text-white py-2 rounded-lg font-bold hover:bg-blue-600 transition">🖨️ Imprimir</button>
                 <button onclick="exportBoards()" class="w-full bg-green-600 text-white py-2 rounded-lg font-bold hover:bg-green-700 transition">💾 Exportar JSON</button>
+                <button onclick="exportEmptyBoardPng()" class="w-full bg-amber-600 text-white py-2 rounded-lg font-bold hover:bg-amber-700 transition">🖼️ Exportar PNG (Vacío)</button>
                 <button onclick="document.getElementById('import-file').click()" class="w-full bg-purple-600 text-white py-2 rounded-lg font-bold hover:bg-purple-700 transition">📁 Importar JSON</button>
                 <input type="file" id="import-file" accept=".json" class="hidden" onchange="importBoards(this)">
                 <button onclick="clearBoard()" class="w-full bg-slate-100 text-slate-500 py-2 rounded-lg text-xs">Limpiar Tablero</button>
@@ -328,6 +330,51 @@
             a.href = URL.createObjectURL(blob);
             a.download = 'historias-tesis.json';
             a.click();
+        }
+
+        async function exportEmptyBoardPng() {
+            if (typeof html2canvas === 'undefined') {
+                alert('No se pudo cargar el exportador de imagen.');
+                return;
+            }
+
+            const exportBoard = document.createElement('div');
+            exportBoard.className = 'grid-board';
+
+            for (let row = 1; row <= 5; row++) {
+                for (let col = 0; col < 5; col++) {
+                    const colLetter = String.fromCharCode(65 + col);
+                    const cell = document.createElement('div');
+                    cell.className = 'cell col-label row-label';
+                    cell.dataset.col = colLetter;
+                    cell.dataset.row = row;
+                    exportBoard.appendChild(cell);
+                }
+            }
+
+            const wrapper = document.createElement('div');
+            wrapper.style.position = 'fixed';
+            wrapper.style.left = '-9999px';
+            wrapper.style.top = '0';
+            wrapper.style.padding = '20px';
+            wrapper.style.background = '#ffffff';
+            wrapper.appendChild(exportBoard);
+            document.body.appendChild(wrapper);
+
+            try {
+                const canvas = await html2canvas(exportBoard, {
+                    backgroundColor: '#ffffff',
+                    scale: 2
+                });
+                const link = document.createElement('a');
+                link.href = canvas.toDataURL('image/png');
+                link.download = `tablero-vacio-${Date.now()}.png`;
+                link.click();
+            } catch (error) {
+                alert('No fue posible exportar el tablero vacío en PNG.');
+            } finally {
+                wrapper.remove();
+            }
         }
 
         function importBoards(input) {

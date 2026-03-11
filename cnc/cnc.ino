@@ -358,6 +358,7 @@ void doCenter(){
   moveHbot(-movimientoArriba, 0, MOTOR_SPEED_RPM);
 
   Serial.println("Reinicio al Centro Completo.");
+  playInstructionAudio(CENTRO_TERMINADO);
 }
 
 void playInstructionAudio(ActionType action) {
