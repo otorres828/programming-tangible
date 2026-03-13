@@ -120,6 +120,7 @@ void enviarBluetooth(ActionType action, int globalIndex);  // Ejecutar una acci�
 void ejecutarBlockControl(int globalIndexPrincipal);       // Ejecutar la lógica del bloque de control
 void esperarNoBloqueante(unsigned long duracionMs);        // Espera no bloqueante procesando botón/estado
 void resetEstadoBloqueControl();                            // Reinicia estado interno de subrutina BLOQUE_CONTROL
+void regresarAPosicionCentro();                            // Regresa a (2,2) con pasos cardinales y delays bloqueantes
 void setBrilloLeds(int ledIndex, int brightness);          // Establecer el brillo de un LED
 bool validarPosicionXY(int x, int y);                      // Validar si una posición (x,y) es válida en la cuadrícula
 String getAccionText(ActionType action);                   // Obtener el texto descriptivo de una acción
@@ -292,6 +293,39 @@ void resetEstadoBloqueControl() {
   blockControlSubIndex = 0;
 }
 
+void regresarAPosicionCentro() {
+  Serial.print("Regreso a centro desde (");
+  Serial.print(robotX);
+  Serial.print(",");
+  Serial.print(robotY);
+  Serial.println(") hacia (2,2).");
+  mySerial.println(13);
+  delay(2500);
+
+  while (robotX < 2) {
+    mySerial.println(MOVER_DERECHA);
+    robotX++;
+    delay(9000);
+  }
+  while (robotX > 2) {
+    mySerial.println(MOVER_IZQUIERDA);
+    robotX--;
+    delay(9000);
+  }
+  while (robotY < 2) {
+    mySerial.println(MOVER_ARRIBA);
+    robotY++;
+    delay(9000);
+  }
+  while (robotY > 2) {
+    mySerial.println(MOVER_ABAJO);
+    robotY--;
+    delay(9000);
+  }
+
+  Serial.println("Robot reubicado en (2,2).");
+}
+
 // -------------------------------------------------------------------------
 // FUNCIONES DE MANEJO DEL BOTÓN
 // -------------------------------------------------------------------------
@@ -341,11 +375,17 @@ void botonPulsaciones() {
         setBrilloLeds(i, BRILLO_20_PORCIENTO);
       }
 
-      Serial.println("Boton: REINICIO COMPLETO (0,0) - codigo 10.");
-      mySerial.print(10);
-      delay(36000);
-      robotX = 2;
-      robotY = 2;
+      if (robotX == 2 && robotY == 2) {
+        Serial.println("Boton REINICIO: robot ya esta en (2,2), comando ignorado.");
+      } else if (robotX == 0 && robotY == 0) {
+        Serial.println("Boton REINICIO: robot en (0,0), emitiendo codigo 10.");
+        mySerial.print(10);
+        delay(36000);
+        robotX = 0;
+        robotY = 0;
+      } else {
+        regresarAPosicionCentro();
+      }
 
       estadoSistemaActual = ESTADO_LEER;
     }

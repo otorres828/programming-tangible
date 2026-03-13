@@ -436,7 +436,7 @@ void executeAction(ActionType action) {
       doHoming(false); 
       break;
     case CENTRO:
-      doCenter(); 
+      Serial.println("Reproduciendo Audio centro...");
       break;
     default:
       Serial.println("Instruccion desconocida.");
