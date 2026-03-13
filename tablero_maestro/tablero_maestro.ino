@@ -84,7 +84,6 @@ unsigned long buttonPressStartTime = 0;
 bool lastButtonReading = HIGH; // INPUT_PULLUP, HIGH cuando no está presionado
 bool currentButtonReading = HIGH;
 bool longPressTriggered = false; // Flag para saber si una pulsación larga ya fue manejada
-bool ultimaPulsacionFueReinicio = false; // Para detectar reinicio consecutivo
 
 const unsigned long BUTTON_DEBOUNCE_DELAY = 50;  // ms de delay para debounce
 const unsigned long LONG_PRESS_THRESHOLD = 1000; // 1 segundos para pulsación larga
@@ -268,7 +267,6 @@ int manejoLedBT(int stableState) {
   if (conectado && !prev) {
     Serial.println(">>> ESTADO: CONECTADO <<<");
     Serial.println("Estado actual: IDLE (esperando boton para iniciar)");
-    ultimaPulsacionFueReinicio = true;
 
   } else if (!conectado && prev) {
     Serial.println(">>> ESTADO: DESCONECTADO <<<");
@@ -320,16 +318,13 @@ void botonPulsaciones() {
             estadoSistemaActual = ESTADO_CORRER;
             actualInstruccionIndex = 0;
             lastActionExecutionTime = millis();
-            ultimaPulsacionFueReinicio = false;
           } else if (estadoSistemaActual == ESTADO_CORRER) {
             Serial.println("Boton: PAUSA de secuencia.");
             estadoSistemaActual = ESTADO_PAUSA;
-            ultimaPulsacionFueReinicio = false;
           } else if (estadoSistemaActual == ESTADO_PAUSA) {
             Serial.println("Boton: REANUDAR secuencia.");
             estadoSistemaActual = ESTADO_CORRER;
             lastActionExecutionTime = millis();
-            ultimaPulsacionFueReinicio = false;
           }
         }
       }
@@ -346,22 +341,11 @@ void botonPulsaciones() {
         setBrilloLeds(i, BRILLO_20_PORCIENTO);
       }
 
-      if (ultimaPulsacionFueReinicio) {
-        Serial.println("Boton: REINICIO AL CENTRO (2,2) - codigo 13.");
-        mySerial.print(13);
-        delay(30000);
-        robotX = 2;
-        robotY = 2;
-        ultimaPulsacionFueReinicio = false;
-
-      } else {
-        Serial.println("Boton: REINICIO COMPLETO (0,0) - codigo 10.");
-        mySerial.print(10);
-        delay(6000);
-        robotX = 0;
-        robotY = 0;
-        ultimaPulsacionFueReinicio = true;
-      }
+      Serial.println("Boton: REINICIO COMPLETO (0,0) - codigo 10.");
+      mySerial.print(10);
+      delay(36000);
+      robotX = 2;
+      robotY = 2;
 
       estadoSistemaActual = ESTADO_LEER;
     }

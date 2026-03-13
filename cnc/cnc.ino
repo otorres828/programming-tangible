@@ -337,7 +337,8 @@ void doHoming(bool playAudio = true) {
   Serial.println("Final de carrera X alcanzado.");
   moveHbot(0, steps - 20, MOTOR_SPEED_RPM);
 
-  playInstructionAudio(HOMMING_COMPLETO);
+  doCenter();
+  // playInstructionAudio(HOMMING_COMPLETO);
   Serial.println("Homing Completo.");
 }
 
