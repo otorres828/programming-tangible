@@ -16,7 +16,7 @@
 SoftwareSerial mySerial(10, 11); // RX, TX para Bluetooth
 
 // Direcciones I2C de los Arduinos esclavos: Columna 1, Columna 2, Bloque de Control
-const int SLAVE_ADDRESSES[] = { 0x01, 0x02, 0x03 };
+const uint8_t SLAVE_ADDRESSES[] = { 0x01, 0x02, 0x03 };
 
 // Arrays para almacenar los datos
 float allResistances[11];         // Almacena todas las 11 resistencias leídas
@@ -45,14 +45,14 @@ union FloatBytes {
 };
 
 // --- ESTADO GLOBAL DEL ROBOT ---
-int robotX = 0;  // Posición actual en X (columna de la cuadrícula 0-4)
-int robotY = 0;  // Posición actual en Y (fila de la cuadrícula 0-4)
+int robotX = 2;  // Posición actual en X 
+int robotY = 2;  // Posición actual en Y 
 
 // Crea un objeto PCA9685 , con Direccion 0x40 para comunicacion I2C con el driver Pca9685 que controlara los LEDS de las instrucciones
 Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x40, Wire);
 
 // Define el número total de LEDs que vas a controlar
-const int NUM_LEDS = 11; // 8 instrucciones de columnas + 3 de bloque de control
+const uint8_t NUM_LEDS = 11; // 8 instrucciones de columnas + 3 de bloque de control
 
 // Define los valores de brillo (PWM)
 // El PCA9685 tiene una resolución de 12 bits, lo que significa un rango de 0 a 4095.
@@ -102,7 +102,6 @@ bool conectado = false;  // LED state helper
 
 // Variables de estado para detección
 bool btConnected = false; // estado lógico (basado en STATE pin)
-bool homingDone = false;  // Bandera para evitar ejecutar homing más de una vez por conexión
 
 // Variables para debounce del pin STATE
 int btRawLast = LOW;
@@ -120,11 +119,11 @@ void enviarBluetooth(ActionType action, int globalIndex);  // Ejecutar una acci�
 void ejecutarBlockControl(int globalIndexPrincipal);       // Ejecutar la lógica del bloque de control
 void esperarNoBloqueante(unsigned long duracionMs);        // Espera no bloqueante procesando botón/estado
 void resetEstadoBloqueControl();                            // Reinicia estado interno de subrutina BLOQUE_CONTROL
-void regresarAPosicionCentro();                            // Regresa a (2,2) con pasos cardinales y delays bloqueantes
 void setBrilloLeds(int ledIndex, int brightness);          // Establecer el brillo de un LED
 bool validarPosicionXY(int x, int y);                      // Validar si una posición (x,y) es válida en la cuadrícula
-String getAccionText(ActionType action);                   // Obtener el texto descriptivo de una acción
+const __FlashStringHelper* getAccionText(ActionType action); // Obtener el texto descriptivo de una acción
 int manejoLedBT(int stableState);
+void volverAlCentro();                                      // Mover al centro paso a paso con espera entre acciones
 
 void setup() {
   Serial.begin(9600);  // Para comunicación con el Monitor Serial del PC
@@ -151,10 +150,10 @@ void setup() {
 
   pinMode(BOTON_INICIO, INPUT_PULLUP);
 
-  Serial.println("----------------------------------");
-  Serial.println(" Arduino Central (Maestro I2C) ");
-  Serial.println("----------------------------------");
-  Serial.println("Esperando conexion por bluetooth...");
+  Serial.println(F("----------------------------------"));
+  Serial.println(F(" Arduino Central (Maestro I2C) "));
+  Serial.println(F("----------------------------------"));
+  Serial.println(F("Esperando conexion por bluetooth..."));
 
   mySerial.begin(9600);
 
@@ -184,7 +183,7 @@ void loop() {
 
     if (btStableState == HIGH && !btConnected) {
       btConnected = true;
-      Serial.println("Bluetooth MAESTRO: conectado (STATE pin). Enviando homing...");
+      Serial.println(F("Bluetooth MAESTRO: conectado (STATE pin)..."));
 
       // Al conectar, todos los LEDs deben quedar visibles al 20%.
       for (int i = 0; i < NUM_LEDS; i++) {
@@ -192,13 +191,9 @@ void loop() {
         ledEstadoPrevio[i] = true;
       }
 
-      if (!homingDone) {
-        homingDone = true;
-      }
     } else if (btStableState == LOW && btConnected) {
       btConnected = false;
-      homingDone = false;
-      Serial.println("Bluetooth MAESTRO: desconectado (STATE pin).");
+      Serial.println(F("Bluetooth MAESTRO: desconectado (STATE pin)."));
       while (mySerial.available()) { mySerial.read(); }
     }
   }
@@ -220,8 +215,8 @@ void loop() {
       break;
 
     case ESTADO_REINICIO:
-      Serial.println("Estado REINICIO: enviando '7' al CNC para reinicio/accion.");
-      mySerial.println(7);
+      Serial.println(F("Estado REINICIO: enviando '10' al CNC para reinicio/accion."));
+      mySerial.println(10);
       delay(100);
       resetEstadoBloqueControl();
       estadoSistemaActual = ESTADO_LEER;
@@ -235,7 +230,7 @@ void loop() {
           ejecutarSiguienteInstruccion();
           lastActionExecutionTime = millis();
         } else {
-          Serial.println("Secuencia principal finalizada.");
+          Serial.println(F("Secuencia principal finalizada."));
           mySerial.println(11);
           resetEstadoBloqueControl();
           estadoSistemaActual = ESTADO_LEER;
@@ -266,11 +261,11 @@ int manejoLedBT(int stableState) {
   }
 
   if (conectado && !prev) {
-    Serial.println(">>> ESTADO: CONECTADO <<<");
-    Serial.println("Estado actual: IDLE (esperando boton para iniciar)");
+    Serial.println(F(">>> ESTADO: CONECTADO <<<"));
+    Serial.println(F("Estado actual: IDLE (esperando boton para iniciar)"));
 
   } else if (!conectado && prev) {
-    Serial.println(">>> ESTADO: DESCONECTADO <<<");
+    Serial.println(F(">>> ESTADO: DESCONECTADO <<<"));
   }
 
   return conectado ? 1 : 0;
@@ -293,14 +288,83 @@ void resetEstadoBloqueControl() {
   blockControlSubIndex = 0;
 }
 
-void regresarAPosicionCentro() {
-  Serial.print("Regreso a centro desde (");
-  Serial.print(robotX);
-  Serial.print(",");
-  Serial.print(robotY);
-  Serial.println(") hacia (2,2).");
+// -------------------------------------------------------------------------
+// FUNCIONES DE MANEJO DEL BOTÓN
+// -------------------------------------------------------------------------
+void botonPulsaciones() {
+  bool reading = digitalRead(BOTON_INICIO);
+
+  if (reading != lastButtonReading) {
+    lastButtonStateChangeTime = millis();
+  }
+
+  if ((millis() - lastButtonStateChangeTime) > BUTTON_DEBOUNCE_DELAY) {
+    if (reading != currentButtonReading) {
+      currentButtonReading = reading;
+
+      if (currentButtonReading == LOW) {
+        buttonPressStartTime = millis();
+        longPressTriggered = false;
+      } else {
+        if (!longPressTriggered) {
+          if (estadoSistemaActual == ESTADO_LEER) {
+            Serial.println(F("Boton: INICIO de secuencia."));
+            capturarSnapshotInstrucciones();
+            resetEstadoBloqueControl();
+            estadoSistemaActual = ESTADO_CORRER;
+            actualInstruccionIndex = 0;
+            lastActionExecutionTime = millis();
+          } else if (estadoSistemaActual == ESTADO_CORRER) {
+            Serial.println(F("Boton: PAUSA de secuencia."));
+            estadoSistemaActual = ESTADO_PAUSA;
+          } else if (estadoSistemaActual == ESTADO_PAUSA) {
+            Serial.println(F("Boton: REANUDAR secuencia."));
+            estadoSistemaActual = ESTADO_CORRER;
+            lastActionExecutionTime = millis();
+          }
+        }
+      }
+    }
+  }
+
+  if (currentButtonReading == LOW && !longPressTriggered) {
+    if ((millis() - buttonPressStartTime) >= LONG_PRESS_THRESHOLD) {
+      longPressTriggered = true;
+      estadoSistemaActual = ESTADO_REINICIO;
+      actualInstruccionIndex = 0;
+      resetEstadoBloqueControl();
+      for (int i = 0; i < NUM_LEDS; i++) {
+        setBrilloLeds(i, BRILLO_20_PORCIENTO);
+      }
+
+      if (robotX == 2 && robotY == 2) {
+        Serial.println(F("Boton REINICIO: robot ya esta en (2,2), comando ignorado."));
+      } else if (robotX == 0 && robotY == 0) {
+        Serial.println(F("Boton REINICIO: robot en (0,0), emitiendo codigo 10 (DO_HOMMING)."));
+        mySerial.println(10);
+        delay(6000);
+        robotX = 0;
+        robotY = 0;
+      } else {
+        Serial.println(F("Boton REINICIO: fuera de (0,0) y (2,2). Moviendo al centro con pasos de 9s."));
+        volverAlCentro();
+      }
+
+      estadoSistemaActual = ESTADO_LEER;
+    }
+  }
+
+  lastButtonReading = reading;
+}
+
+void volverAlCentro() {
   mySerial.println(13);
-  delay(2500);
+  delay(3000);
+  Serial.print(F("Volviendo al centro desde ("));
+  Serial.print(robotX);
+  Serial.print(F(","));
+  Serial.print(robotY);
+  Serial.println(F(") con pasos de 9 segundos."));
 
   while (robotX < 2) {
     mySerial.println(MOVER_DERECHA);
@@ -323,75 +387,7 @@ void regresarAPosicionCentro() {
     delay(9000);
   }
 
-  Serial.println("Robot reubicado en (2,2).");
-}
-
-// -------------------------------------------------------------------------
-// FUNCIONES DE MANEJO DEL BOTÓN
-// -------------------------------------------------------------------------
-void botonPulsaciones() {
-  bool reading = digitalRead(BOTON_INICIO);
-
-  if (reading != lastButtonReading) {
-    lastButtonStateChangeTime = millis();
-  }
-
-  if ((millis() - lastButtonStateChangeTime) > BUTTON_DEBOUNCE_DELAY) {
-    if (reading != currentButtonReading) {
-      currentButtonReading = reading;
-
-      if (currentButtonReading == LOW) {
-        buttonPressStartTime = millis();
-        longPressTriggered = false;
-      } else {
-        if (!longPressTriggered) {
-          if (estadoSistemaActual == ESTADO_LEER) {
-            Serial.println("Boton: INICIO de secuencia.");
-            capturarSnapshotInstrucciones();
-            resetEstadoBloqueControl();
-            estadoSistemaActual = ESTADO_CORRER;
-            actualInstruccionIndex = 0;
-            lastActionExecutionTime = millis();
-          } else if (estadoSistemaActual == ESTADO_CORRER) {
-            Serial.println("Boton: PAUSA de secuencia.");
-            estadoSistemaActual = ESTADO_PAUSA;
-          } else if (estadoSistemaActual == ESTADO_PAUSA) {
-            Serial.println("Boton: REANUDAR secuencia.");
-            estadoSistemaActual = ESTADO_CORRER;
-            lastActionExecutionTime = millis();
-          }
-        }
-      }
-    }
-  }
-
-  if (currentButtonReading == LOW && !longPressTriggered) {
-    if ((millis() - buttonPressStartTime) >= LONG_PRESS_THRESHOLD) {
-      longPressTriggered = true;
-      estadoSistemaActual = ESTADO_REINICIO;
-      actualInstruccionIndex = 0;
-      resetEstadoBloqueControl();
-      for (int i = 0; i < NUM_LEDS; i++) {
-        setBrilloLeds(i, BRILLO_20_PORCIENTO);
-      }
-
-      if (robotX == 2 && robotY == 2) {
-        Serial.println("Boton REINICIO: robot ya esta en (2,2), comando ignorado.");
-      } else if (robotX == 0 && robotY == 0) {
-        Serial.println("Boton REINICIO: robot en (0,0), emitiendo codigo 10.");
-        mySerial.print(10);
-        delay(36000);
-        robotX = 0;
-        robotY = 0;
-      } else {
-        regresarAPosicionCentro();
-      }
-
-      estadoSistemaActual = ESTADO_LEER;
-    }
-  }
-
-  lastButtonReading = reading;
+  Serial.println(F("Centro alcanzado en (2,2)."));
 }
 
 // -------------------------------------------------------------------------
@@ -501,13 +497,13 @@ void ejecutarSiguienteInstruccion() {
 
     if (actualAction == BLOQUE_CONTROL) {
       if (!blockControlActivo) {
-        Serial.print("Instruccion ");
+        Serial.print(F("Instruccion "));
         Serial.print(actualInstruccionIndex + 1);
-        Serial.println(": Bloque de Control detectado ");
+        Serial.println(F(": Bloque de Control detectado "));
       } else {
-        Serial.print("Instruccion ");
+        Serial.print(F("Instruccion "));
         Serial.print(actualInstruccionIndex + 1);
-        Serial.print(": Reanudando Bloque de Control en subinstruccion ");
+        Serial.print(F(": Reanudando Bloque de Control en subinstruccion "));
         Serial.println(blockControlSubIndex + 1);
       }
       ejecutarBlockControl(actualInstruccionIndex);
@@ -520,27 +516,27 @@ void ejecutarSiguienteInstruccion() {
       enviarBluetooth(actualAction, actualInstruccionIndex);
     }
   } else {
-    Serial.print("Instruccion ");
+    Serial.print(F("Instruccion "));
     Serial.print(actualInstruccionIndex + 1);
-    Serial.println(": S/I ");
+    Serial.println(F(": S/I "));
   }
 
   actualInstruccionIndex++;
 }
 
 void enviarBluetooth(ActionType action, int globalIndex) {
-  Serial.print("Instruccion ");
+  Serial.print(F("Instruccion "));
   Serial.print(globalIndex + 1);
-  Serial.print(": ");
+  Serial.print(F(": "));
   Serial.print(getAccionText(action));
 
   if (!btConnected) {
-    Serial.println("No hay conexion a bluetooth");
+    Serial.println(F("No hay conexion a bluetooth"));
     return;
   }
 
   if (estadoSistemaActual != ESTADO_CORRER) {
-    Serial.println("Ejecucion pausada/reiniciada. Accion omitida.");
+    Serial.println(F("Ejecucion pausada/reiniciada. Accion omitida."));
     return;
   }
 
@@ -583,12 +579,14 @@ void enviarBluetooth(ActionType action, int globalIndex) {
   }
 
   if (accionValida) {
-    Serial.print(": Accion valida");
+    Serial.print(F(": Accion valida"));
+    Serial.print(F(": X - ")); Serial.print((robotX));
+    Serial.print(F(" Y - ")); Serial.print((robotY));
     mySerial.println(action);
     Serial.println();
     esperarNoBloqueante(10000);
   }else{
-    Serial.println(": Accion no valida (movimiento fuera de limites)");
+    Serial.println(F(": Accion no valida (movimiento fuera de limites)"));
     mySerial.println(12);
     esperarNoBloqueante(3000);
     robotX = oldX;
@@ -617,7 +615,7 @@ void ejecutarBlockControl(int globalIndexPrincipal) {
 
   for (int i = blockControlSubIndex; i < 3; i++) {
     if (!btConnected || estadoSistemaActual != ESTADO_CORRER) {
-      Serial.println("Bloque de control interrumpido por PAUSA/REINICIO o desconexion BT.");
+      Serial.println(F("Bloque de control interrumpido por PAUSA/REINICIO o desconexion BT."));
       blockControlSubIndex = i;
       break;
     }
@@ -628,15 +626,15 @@ void ejecutarBlockControl(int globalIndexPrincipal) {
     if (controlRawInstruction > 0 && controlAction != BLOQUE_CONTROL) {
       enviarBluetooth(controlAction, i + 8);
       if (!btConnected || estadoSistemaActual != ESTADO_CORRER) {
-        Serial.println("Bloque de control detenido despues de subinstruccion.");
+        Serial.println(F("Bloque de control detenido despues de subinstruccion."));
         blockControlSubIndex = i + 1;
         break;
       }
       blockControlSubIndex = i + 1;
     } else {
-      Serial.print("Bloque de control ");
+      Serial.print(F("Bloque de control "));
       Serial.print(i + 1);
-      Serial.println(": S/I");
+      Serial.println(F(": S/I"));
       blockControlSubIndex = i + 1;
     }
   }
@@ -660,16 +658,16 @@ bool validarPosicionXY(int x, int y) {
   return x >= 0 && x < GRID_MAX && y >= 0 && y < GRID_MAX;
 }
 
-String getAccionText(ActionType action) {
+const __FlashStringHelper* getAccionText(ActionType action) {
   switch (action) {
-    case MOVER_ARRIBA:    return "Avanzar";
-    case MOVER_ABAJO:     return "Retroceder";
-    case MOVER_IZQUIERDA: return "Izquierda";
-    case MOVER_DERECHA:   return "Derecha";
-    case BLOQUE_CONTROL:  return "Bloque de Control";
-    case MELODIA_1:       return "Melodia";
-    case DO_HOMMING:      return "Reinicio";
-    default:              return "Ninguna instruccion / Error";
+    case MOVER_ARRIBA:    return F("Avanzar");
+    case MOVER_ABAJO:     return F("Retroceder");
+    case MOVER_IZQUIERDA: return F("Izquierda");
+    case MOVER_DERECHA:   return F("Derecha");
+    case BLOQUE_CONTROL:  return F("Bloque de Control");
+    case MELODIA_1:       return F("Melodia");
+    case DO_HOMMING:      return F("Reinicio");
+    default:              return F("Ninguna instruccion / Error");
   }
 }
 
