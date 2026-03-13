@@ -1,0 +1,1 @@
+cat c:\Users\oator\OneDrive\Escritorio\TESIS\PROGRAMACION TANGIBLE\app\index.html
