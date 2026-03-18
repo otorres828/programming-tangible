@@ -351,7 +351,7 @@ void doCenter(){
   const int movimientoArriba = steps*2;
 
   Serial.println("Reiniciando al Centro (3,3)...");
-  playInstructionAudio(MOVER_IZQUIERDA);
+  playInstructionAudio(MOVER_DERECHA);
   Serial.println("Moviendo DERECHA...");
   moveHbot(0, (movimientoDerecha), MOTOR_SPEED_RPM); 
 
