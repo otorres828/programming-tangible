@@ -124,6 +124,7 @@ bool validarPosicionXY(int x, int y);                      // Validar si una pos
 const __FlashStringHelper* getAccionText(ActionType action); // Obtener el texto descriptivo de una acción
 int manejoLedBT(int stableState);
 void volverAlCentro();                                      // Mover al centro paso a paso con espera entre acciones
+void printResistance(ActionType action);
 
 void setup() {
   Serial.begin(9600);  // Para comunicación con el Monitor Serial del PC
@@ -153,7 +154,7 @@ void setup() {
   Serial.println(F("----------------------------------"));
   Serial.println(F(" Arduino Central (Maestro I2C) "));
   Serial.println(F("----------------------------------"));
-  Serial.println(F("Esperando conexion por bluetooth..."));
+  Serial.println(F("Esperando conexion por bluetooth (INICIAL)..."));
 
   mySerial.begin(9600);
 
@@ -171,6 +172,8 @@ void setup() {
 
 void loop() {
 
+  // leerTodasColumnas();return;
+  
   int raw = digitalRead(BT_STATE_PIN);
   if (raw != btRawLast) {
     btLastDebounceTime = millis();
@@ -395,23 +398,6 @@ void volverAlCentro() {
 // -------------------------------------------------------------------------
 void leerTodasColumnas() {
 
-    // allResistances[0] = 2;  //Bloque de control
-
-    // allResistances[0] = 5;  //Bloque de control
-    // allResistances[1] = 5;  //Bloque de control
-    // allResistances[2] = 1;  //Arriba
-    // allResistances[3] = 3;  //izquierda
-    // allResistances[4] = 3;  //izquierda
-    // allResistances[5] = 2;  //abajo
-    // allResistances[6] = 2;  //abajo
-    // allResistances[7] = 3;  //izquierda
-
-    // allResistances[8] = 4;  //derecha
-    // allResistances[9] = 4;  //derecha
-    // allResistances[10] = 1;  //arriba
-
-    // return;
-        
     int currentGlobalIndex = 0;
 
     for (int col = 0; col < 2; col++) {
@@ -462,6 +448,18 @@ void leerTodasColumnas() {
         ledEstadoPrevio[i] = true;
       }
     }
+
+    // Serial.println("----------------------------------- ");
+
+    // for(int i=0;i<11;i++){
+    //     Serial.print("Instruccion ");
+    //     Serial.print(i+1);
+    //     Serial.print(": ");
+    //     printResistance((ActionType)(int(allResistances[i])));
+    //     Serial.println("");
+      
+    // }
+    // delay(1000);
 }
 
 void copiarArrays() {
@@ -686,4 +684,28 @@ void setBrilloLeds(int ledIndex, int brightness) {
   pwm.setPWM(ledIndex, 0, brightness);
   ledBrilloPrevio[ledIndex] = brightness;
   ledUltimaActualizacion[ledIndex] = now;
+}
+
+void printResistance(ActionType action) {
+  
+  switch (action) {
+    case MOVER_ARRIBA:
+      Serial.print("ARRIBA...");
+      break;
+    case MOVER_ABAJO:
+      Serial.print("ABAJO...");
+      break;
+    case MOVER_IZQUIERDA:
+      Serial.print("IZQUIERDA...");
+      break;
+    case MOVER_DERECHA:
+      Serial.print("DERECHA...");
+      break;
+    case MELODIA_1:
+      Serial.print("Melodia 1...");
+      break;
+    default:
+      Serial.print("Instruccion desconocida.");
+      break;
+  }
 }
