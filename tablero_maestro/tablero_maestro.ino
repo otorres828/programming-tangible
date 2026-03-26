@@ -372,25 +372,27 @@ void volverAlCentro() {
   while (robotX < 2) {
     mySerial.println(MOVER_DERECHA);
     robotX++;
-    delay(9000);
+    delay(9500);
   }
   while (robotX > 2) {
     mySerial.println(MOVER_IZQUIERDA);
     robotX--;
-    delay(9000);
+    delay(9500);
   }
   while (robotY < 2) {
     mySerial.println(MOVER_ARRIBA);
     robotY++;
-    delay(9000);
+    delay(9500);
   }
   while (robotY > 2) {
     mySerial.println(MOVER_ABAJO);
     robotY--;
-    delay(9000);
+    delay(9500);
   }
 
   Serial.println(F("Centro alcanzado en (2,2)."));
+  mySerial.println(14);
+
 }
 
 // -------------------------------------------------------------------------
@@ -582,7 +584,7 @@ void enviarBluetooth(ActionType action, int globalIndex) {
     Serial.print(F(" Y - ")); Serial.print((robotY));
     mySerial.println(action);
     Serial.println();
-    esperarNoBloqueante(10000);
+    esperarNoBloqueante(10500);
   }else{
     Serial.println(F(": Accion no valida (movimiento fuera de limites)"));
     mySerial.println(12);
