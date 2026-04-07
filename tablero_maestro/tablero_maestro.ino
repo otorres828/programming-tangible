@@ -230,8 +230,11 @@ void loop() {
     case ESTADO_CORRER:
       if (millis() - lastActionExecutionTime >= DELAY_POR_INSTRUCCION) {
         if (actualInstruccionIndex < 8) {
+
           ejecutarSiguienteInstruccion();
           lastActionExecutionTime = millis();
+          
+
         } else {
           Serial.println(F("Secuencia principal finalizada."));
           mySerial.println(11);
@@ -451,17 +454,6 @@ void leerTodasColumnas() {
       }
     }
 
-    // Serial.println("----------------------------------- ");
-
-    // for(int i=0;i<11;i++){
-    //     Serial.print("Instruccion ");
-    //     Serial.print(i+1);
-    //     Serial.print(": ");
-    //     printResistance((ActionType)(int(allResistances[i])));
-    //     Serial.println("");
-      
-    // }
-    // delay(1000);
 }
 
 void copiarArrays() {
@@ -600,6 +592,11 @@ void enviarBluetooth(ActionType action, int globalIndex) {
       setBrilloLeds(globalIndex, BRILLO_OFF);
     }
   }
+
+  //actualizar estados 
+  leerTodasColumnas();
+  copiarArrays();
+  capturarSnapshotInstrucciones();
 }
 
 void ejecutarBlockControl(int globalIndexPrincipal) {

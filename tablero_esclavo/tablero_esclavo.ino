@@ -41,7 +41,6 @@ const float RANGO_DER_MAX = 2600.0;
 const float RANGO_BLOQUE_MIN = 70000.0;
 const float RANGO_BLOQUE_MAX = 130000.0;
 
-
 const float RANGO_MELODIA_MIN = 7000.0;
 const float RANGO_MELODIA_MAX = 15000.0;
 
