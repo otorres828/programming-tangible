@@ -187,7 +187,9 @@ void loop() {
     if (btStableState == HIGH && !btConnected) {
       btConnected = true;
       Serial.println(F("Bluetooth MAESTRO: conectado (STATE pin)..."));
-
+      //Colocamos nuevamente al centro porque cada que se conecta el bluetooth se reinicia el centro
+      robotX = 2;
+      robotY = 2;
       // Al conectar, todos los LEDs deben quedar visibles al 20%.
       for (int i = 0; i < NUM_LEDS; i++) {
         setBrilloLeds(i, BRILLO_20_PORCIENTO);
@@ -236,11 +238,11 @@ void loop() {
           
 
         } else {
+          estadoSistemaActual = ESTADO_LEER;
+          actualInstruccionIndex = 0;
           Serial.println(F("Secuencia principal finalizada."));
           mySerial.println(11);
           resetEstadoBloqueControl();
-          estadoSistemaActual = ESTADO_LEER;
-          actualInstruccionIndex = 0;
           for (int i = 0; i < NUM_LEDS; i++) {
             setBrilloLeds(i, BRILLO_20_PORCIENTO);
           }
